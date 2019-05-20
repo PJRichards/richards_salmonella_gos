@@ -1,0 +1,43 @@
+---
+title: "*Salmonella* GOS article"
+output: word_document
+fontsize: 12pt
+geometry: margin = 1in
+bibliography: sal_manuscript.bib
+csl: mbio.csl
+header-includes:
+- \usepackage{lineno}
+- \usepackage{setspace}
+- \doublespacing
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+#packages
+library(tidyverse)
+```
+
+Running Head: Supplemental dietary GOS shortens *Salmonella* clearence time
+
+Philip J. Richards^1^ and Ian F. Connerton^1,2^  
+
+^1^Division of Microbiology, Brewing and Biotechnology, School of Biosciences, University of Nottingham, Loughborough, Leicestershire LE12 5RD, UK  
+
+^4^Lead Contact
+
+*Correspondence: ian.connerton@nottingham.ac.uk  
+
+Key words: Prebiotic, Galacto-oligosaccharides, Chicken, Microbiome, Gut health, Salmonella
+  
+\newpage
+\linenumbers
+
+## ABSTRACT
+
+## IMPORTANCE
+
+## INTRODUCTION
+
+## RESULTS
+### Salmonella ===
