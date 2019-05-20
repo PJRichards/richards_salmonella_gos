@@ -1,0 +1,20 @@
+.Rproj.user
+.Rhistory
+.Ruserdata
+
+# sequence data
+.fastq.gz
+
+# observations
+# zootechnical and counts
+data/observations/
+
+# fastq reads
+data/reads/
+
+# mothur outputs
+data/mothur/
+
+# miscellaneous
+data/process/
+
