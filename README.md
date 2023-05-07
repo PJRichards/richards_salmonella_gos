@@ -1,5 +1,4 @@
-# Prebiotic galactooligosaccharide feed modifies the chicken gut microbiota 
-to efficiently clear *Salmonella*.
+# Prebiotic galactooligosaccharide feed modifies the chicken gut microbiota to efficiently clear *Salmonella*.
 
 ## Abstract  
 
