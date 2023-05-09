@@ -1,0 +1,59 @@
+---
+title: ""
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+# packages
+library("dplyr")
+library("stringr")
+library("gt")
+library("tibble")
+
+# paths
+shared_path <- "../results/mothur/sal.trim.contigs.good.unique.good.filter.unique.precluster.denovo.vsearch.pick.pick.opti_mcc.shared"
+tax_path <- "../results/mothur/sal.trim.contigs.good.unique.good.filter.unique.precluster.denovo.vsearch.pick.pick.opti_mcc.0.03.cons.taxonomy"
+
+# key OTU
+otulist <- c("Otu0006", "Otu0007", "Otu0013", "Otu0018", "Otu0028", "Otu0059", 
+             "Otu0061", "Otu0071")
+
+```
+
+```{r read in data, include=FALSE}
+tax <- read.table(file = tax_path, sep = '\t', header = TRUE)
+shared_raw <- read.table(file = shared_path, sep = '\t', header = TRUE)
+
+```
+
+```{r format data, include=FALSE}
+# format shared OTUs
+shared <- shared_raw %>% 
+                      select(-c(label, numOtus)) 
+
+# append rank
+shared_rank <- shared %>% 
+                        mutate(across(where(is.numeric), 
+                                      function(x) paste0(x, " (",rank(x, ties.method = "max"),")")))
+
+                               
+kit_rank <- shared_rank  %>% 
+                            filter(str_detect(Group, pattern = "kit")) 
+
+kit_rank_key <- kit_rank %>% 
+                            select("Group", all_of(otulist)) %>% 
+                            rename(`Sample name` = Group) %>% 
+                            mutate(kitome = c("1","2","3")) %>% 
+                            relocate(kitome)
+
+```
+
+```{r draw table, echo=FALSE}
+gt(kit_rank_key) %>% 
+                  tab_spanner(
+                              label = "OTU",
+                              columns = kit_rank_key %>% select(starts_with("otu")) %>% names()
+                              ) 
+```

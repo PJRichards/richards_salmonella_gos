@@ -1,0 +1,80 @@
+---
+title: ""
+output: word_document
+---
+
+```{r setup, include=FALSE}
+# packages
+library("readr")
+library("tidyr")
+library("gt")
+library("dplyr")
+
+# input
+tissue.path <- "../resources/zootechnical/late_SE_enrich.csv"
+
+group_meta <- c("Group", "Age", "Replicate")
+
+```
+
+```{r format data, include=FALSE}
+
+# read in data
+tissue_raw <- read_csv(tissue.path)
+
+# format data
+# fix cohort names
+# add dpi
+tissue <- tissue_raw %>% 
+              separate(bird, group_meta, "_") %>% 
+              mutate(Group = case_when(Group == "Gp 3" ~ "ctl x SE",
+                                        Group == "Gp 4" ~ "jGOS x SE"),
+                     Age = as.numeric(Age),
+                     Age = paste0(Age," (",Age-20,")")) 
+
+
+# make count
+# reorder columns
+tissue_fmt <- tissue %>% 
+                      group_by(Group, Age, site) %>% 
+                      count(status) %>%  
+                      mutate(status = paste0(site,status)) %>% 
+                      ungroup() %>% select(-site) %>%
+                      pivot_wider(names_from = status, 
+                                  values_from = n) %>% 
+                      mutate(across(where(is.numeric), ~replace(., is.na(.), 0))) %>% 
+                      arrange(Age) %>% 
+                      relocate(Age) 
+
+tissue_fmt2 <- tissue_fmt |> 
+                mutate(LiverSum = Liverneg+Liverpos,
+                       SpleenSum = Spleenneg+Spleenpos,
+                       LivernegPC = signif(100*(Liverneg/LiverSum),3),
+                       LiverposPC = signif(100*(Liverpos/LiverSum),3),
+                       SpleennegPC = signif(100*(Spleenneg/SpleenSum),3),
+                       SpleenposPC = signif(100*(Spleenpos/SpleenSum),3)
+                       )
+            
+tissue_fmt3 <- tissue_fmt2 |> 
+                            mutate(Liverneg = paste0(LivernegPC," (",Liverneg,")"),
+                                   Liverpos = paste0(LiverposPC," (",Liverpos,")"),
+                                   Spleenneg = paste0(SpleennegPC," (",Spleenneg,")"),
+                                   Spleenpos = paste0(SpleenposPC," (",Spleenpos,")")) |> 
+                            select(c(Age,Group,Liverneg,Liverpos,Spleenneg,Spleenpos))
+
+```
+
+```{r draw table, echo=FALSE}
+gt(tissue_fmt3) %>% 
+              tab_spanner(
+                          label = "Liver",
+                          columns = c(`Liverneg`,`Liverpos`)
+                          ) %>% 
+              tab_spanner(
+                          label = "Spleen",
+                          columns = c(`Spleenneg`,`Spleenpos`)
+                          ) %>% 
+              cols_label(`Liverneg`="-",`Liverpos`="+",`Spleenneg`="-",`Spleenpos`="+") 
+
+```
+
