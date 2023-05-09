@@ -1,6 +1,6 @@
 ###############################################################################
 #
-# Figure 2. A distinct microbiota distinguishes *S.* Enteritidis-challenged 
+# Figure 3. A distinct microbiota distinguishes *S.* Enteritidis-challenged 
 # chickens raised on a GOS-supplemented diet
 #
 ###############################################################################
