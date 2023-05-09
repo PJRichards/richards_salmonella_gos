@@ -95,7 +95,6 @@ scfa_raw <- scfa_xls %>%
   mutate("Isobutyric acid" = `Isobutyric acid`/1000)
 
 # clean data
-# drop early exposure communities
 # convert to mM
 # fix levels
 scfa_wide <- scfa_raw %>% 
