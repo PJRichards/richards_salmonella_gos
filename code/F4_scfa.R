@@ -98,7 +98,6 @@ scfa_raw <- scfa_xls %>%
 # convert to mM
 # fix levels
 scfa_wide <- scfa_raw %>% 
-                filter(str_detect(replicate,"\\d")) %>% 
                 drop_na() %>% 
                 mutate(`Acetic acid` = ((`Acetic acid`/1000)/acetic_MolWt)*1000,
                        Propionate = ((Propionate/1000)/propionate_MolWt)*1000,
