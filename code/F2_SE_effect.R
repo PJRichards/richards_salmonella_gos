@@ -19,13 +19,12 @@ library("broom")
 # input
 SE_counts_path <- "resources/zootechnical/late_SE_counts.csv"
 vilus_raw_path <- "resources/zootechnical/late_vilus_length.csv"
-mass_raw_path <- "resources/zootechnical/late_BW_cull.tsv"
+weight_raw_path <- "resources/zootechnical/late_BW_cull.tsv"
 
 # output
 figpath <- "submission/fig2_SE_effect.pdf"
 
-
-############ Salmonella counts ###############################################
+############ Salmonella counts #################################################
 
 # read in data
 SE_counts_raw <- read_csv(SE_counts_path) 
@@ -36,8 +35,8 @@ SE_counts_raw %>% group_by(Age,Challenge, Diet) %>% count()
 
 # fix feed nomenclature
 SE_counts <- SE_counts_raw %>% 
-                            mutate(feed = if_else(Diet == "ctl", "ctl",
-                                                   if_else(Diet == "GOS" & Age < 28,"+GOS","ctl")))
+                  mutate(feed = if_else(Diet == "ctl", "ctl",
+                                  if_else(Diet == "GOS" & Age < 28,"+GOS","ctl")))
 
 # make placeholder df to harmonize/clarify plot spacing
 placeholder <- tibble(
@@ -84,14 +83,14 @@ counts.p <-
       facet_grid(cols = vars(Age), scales = "free_x") 
 
 
-############ Growth performance ###############################################
+############ body weight #######################################################
 
 # read in mass data
-mass_raw <- read_tsv(mass_raw_path) 
+weight_raw <- read_tsv(weight_raw_path) 
 
 # mass n
 print("mass n")
-mass_raw %>% group_by(Diet, Challenge, Age) %>% summarise(n = n())
+weight_raw %>% group_by(Diet, Challenge, Age) %>% summarise(n = n())
 
 # read in aviagen ross 308 male performance objectives 2014
 target <- tibble(trial = "target",
@@ -103,27 +102,35 @@ target <- tibble(trial = "target",
 
 # add dpi
 # fix feed names
-mass <- mass_raw  %>% 
-  mutate(cohort = paste0(Diet, sep="_", Challenge),
-         Age = paste0(Age," (",Age-20,")"),
-         feed = if_else(Diet == "control", "ctl",
-                        if_else(Diet == "GOS" & Age < 28,"+GOS","ctl")))
+weight <- weight_raw  %>% 
+            mutate(cohort = paste0(Diet, sep="_", Challenge),
+                   Age = paste0(Age," (",Age-20,")"),
+                   feed = if_else(Diet == "control", "ctl",
+                               if_else(Diet == "GOS" & Age < 28,"+GOS","ctl")))
 
-# get mass stats              
-mass_TukeyHSD <- mass %>% 
-                    group_by(Age) %>% 
-                    nest() %>%  
-                    mutate(Tukey = map(data, 
-                                       ~ TukeyHSD(aov(LBW ~ Challenge * Diet, 
-                                                      data=.x)) %>% 
-                                                      tidy())) %>% 
-                    select(-data) %>% 
-                    unnest(cols = Tukey) %>% 
-                    filter(term == "Challenge:Diet")
+# get weight stats              
+# perform kruskal test for significance
+weight_kw <- weight %>% 
+              select(-c(Group,Diet,Challenge, feed, bird_ID)) %>% 
+              group_by(Age) %>% 
+              nest(data = c(LBW, cohort)) %>% 
+              mutate(kruskal_raw = map(data, ~ kruskal.test(.x$LBW, .x$cohort)),
+                     kruskal = map(kruskal_raw, broom::tidy)) %>% 
+              unnest(kruskal)
+
+weight_pw <- 
+    weight_kw %>% 
+            filter(`p.value` < 0.05) %>% 
+            select(-`p.value`) %>%  
+            mutate(wilcox_raw = map(data, ~                                         
+                                    pairwise.wilcox.test(.x$LBW, g = .x$cohort, 
+                                                         p.adjust.method = "BH")),
+                   wilcox = map(wilcox_raw, tidy)) %>% 
+            unnest(cols = wilcox)
 
 # draw mass plot                
-mass.p <-
-  mass %>% 
+weight.p <-
+  weight %>% 
         ggplot(aes(x = cohort, y = LBW, fill = feed)) + 
           geom_boxplot(outlier.shape = NA) +
           geom_point(aes(shape = Challenge), position = position_jitterdodge(0.2)) +
@@ -185,6 +192,8 @@ villus_len.p <-
             facet_grid(cols = vars(Age)) +
             scale_fill_manual(values = c("#f5e4ae","#ffffff")) +
             scale_x_discrete(name = "", labels = c("Mock","SE","Mock","SE")) +
+            scale_y_continuous(limits = c(round(min(villus_len_fmt$VL),-2),
+                                          round(max(villus_len_fmt$VL),-2))) +
             theme_bw() +
             theme(axis.text = element_text(colour = "black"),
                   panel.grid.minor = element_blank(), 
@@ -193,21 +202,18 @@ villus_len.p <-
         
 # Print unannotated figure 
 zootech.p <- plot_grid(counts.p + theme(legend.position="none"), 
-                       mass.p + theme(legend.position="none"), 
+                       weight.p + theme(legend.position="none"), 
                        villus_len.p + theme(legend.position="none"),
-                       ncol = 1, axis = "lr", align = "v", labels = c("A", "B", "C"))
+                       ncol = 1, axis = "lr", align = "v", 
+                       labels = c("A", "B", "C"))
 
 # grab key stats
 # pen mass
-mass_SE_GOSvMock_ctl_22 <- mass_TukeyHSD %>% 
-                                filter(Age == "22 (2)", 
-                                       contrast == "SE:GOS-mock:control") %>% 
-                                pull(`adj.p.value`)
-
-mass_SE_GOSvMock_ctl_24 <- mass_TukeyHSD %>% 
+weight_SE_GOSvMock_ctl_24 <- weight_pw %>% 
                                 filter(Age == "24 (4)", 
-                                       contrast == "SE:GOS-mock:control") %>% 
-                                pull(`adj.p.value`)
+                                       group1 == "GOS_SE",
+                                       group2 == "control_mock") %>% 
+                                pull(`p.value`)
 
 # grab key stats
 # counts
@@ -280,10 +286,8 @@ zootech_annotate.p <- ggdraw(zootech.p) +
     draw_label("jGOS", x=0.9315, y=0.684, size=10) +
 
   # panel B stats
-  draw_line(x = c(0.117, 0.271), y = 0.58, size = 0.43) +
-    draw_label(label = round(mass_SE_GOSvMock_ctl_22,3), x=0.194, y=0.595, size=9) +
   draw_line(x = c(0.346, 0.501), y = 0.58, size = 0.43) +
-    draw_label(label = round(mass_SE_GOSvMock_ctl_24,3), x=0.4235, y=0.595, size=9) +
+    draw_label(label = round(weight_SE_GOSvMock_ctl_24,3), x=0.4235, y=0.595, size=9) +
 
   # panel A stats
   draw_line(x = c(0.628, 0.729), y = 0.925, size = 0.43) +
