@@ -1,14 +1,9 @@
 ################################################################################
 # 
-# ANCOM-BC2 Tutorial
+# get ANCOM-BC2 analysis
 # (adapted from Huang Lin 
 # https://bioconductor.org/packages/release/bioc/vignettes/ANCOMBC/inst/doc/ANCOMBC2.html
-#
-# Analysis of Compositions of Microbiomes with Bias Correction 2 (ANCOM-BC2) 
-# is a methodology for performing differential abundance (DA) analysis of 
-# microbiome count data. This version extends and refines the previously 
-# published Analysis of Compositions of Microbiomes with Bias Correction 
-# (ANCOM-BC) methodology (Lin and Peddada 2020)
+# Thank you
 #
 ################################################################################
 
