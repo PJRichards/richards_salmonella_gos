@@ -38,7 +38,7 @@ ancombc_diet_path <- "results/ANCOMBC_diet.tsv"
 ancombc_chal_path <- "results/ANCOMBC_challenge.tsv"
 
 # output
-figpath <- "submission/fig3_hostmicrobe.pdf"
+figpath <- "submission/fig3_hostmicrobe_test.pdf"
 
 # formatting
 group_meta_id <- c("Trial", "Feed", "Challenge", "Age", "Replicate")
@@ -479,13 +479,13 @@ DAA.p <- plot_grid(challenge_raw.p + theme(legend.position = "none",
 
 
 ############ plot ################################################
-p <- plot_grid(pcoa.p,
-               invsimp_annotate.p,
+p <- plot_grid(invsimp_annotate.p,
+               pcoa.p,
                DAA.p,  
                GE_SE.annot.p, 
                ncol = 1, 
                labels = c("A","B", "","F"),
-               rel_heights = c(0.85,0.8,0.85,1.4))
+               rel_heights = c(0.8, 0.85,0.85,1.4))
 
 
 # export plots to pdf
