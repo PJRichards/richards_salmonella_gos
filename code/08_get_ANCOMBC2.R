@@ -166,7 +166,7 @@ tse <- TreeSummarizedExperiment(assays=list(counts=matrix),
 
 
 
-# Run ancombc2 function on 'late' trial
+# Run ancombc2 function
 output <- ancombc2(data = tse, 
                   assay_name = "counts", tax_level = tax_level,
                   fix_formula = "age + diet + challenge", 
