@@ -31,8 +31,8 @@ raw_GE <- read_excel(path = GE_path, sheet = GE_sheet)
 group_meta_id <- c("Trial", "Feed", "Challenge", "Age", "Replicate")
 
 # Genes of interest
-otherimm <- c("IL4", "STAT6", "STAT5B", "STAT3", "IL10", "NOS2", "STAT4", 
-              "GATA3", "IL15", "TGIF1")
+otherimm <- c("IL-4", "STAT6", "STAT5B", "STAT3", "IL-10", "NOS2", "STAT4", 
+              "GATA3", "IL-15", "TGIF1")
 
 # format data
 # make 'tidy'
@@ -157,12 +157,12 @@ GE_SE.p <- FC.long %>%
 
 
 GE_SE.annot.p <- ggdraw(GE_SE.p) + 
-  draw_line(x = c(0.742, 0.767), y=0.92, color="black", size=0.4) +
+  draw_line(x = c(0.742, 0.767), y=0.72, color="black", size=0.4) +
     draw_label(FC.stats %>% filter(Age==22, gene=="STAT3") %>% pull(p_adjust) %>% round(.,3), 
-               size=7, x=0.7545, y=0.93) +
-  draw_line(x = c(0.123, 0.148), y = 0.34, color = "black", size = 0.4) +
+               size=7, x=0.7545, y=0.73) +
+  draw_line(x = c(0.123, 0.148), y = 0.28, color = "black", size = 0.4) +
     draw_label(FC.stats %>% filter(Age==22, gene=="TGIF1") %>% pull(p_adjust) %>% round(.,3), 
-              size=7, x = 0.1355, y = 0.35)
+              size=7, x = 0.1355, y = 0.29)
 
 
 # export plots to pdf
