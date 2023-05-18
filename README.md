@@ -31,7 +31,7 @@ galactooligosaccharide-supplemented feed relative to mock-challenged controls;
 but far greater concentrations were detected in chickens fed a 
 galactooligosaccharide-supplemented diet in early life. Propionate and valerate 
 concentrations corresponded with the abundance of the Acidaminococcaceae taxon. 
-The absence of ileal and cecal proinflammatory chemokine/cytokine transcriptional 
+The absence of cecal proinflammatory chemokine/cytokine transcriptional 
 responses suggest that the *Salmonella*-clearance observed for the 
 galactooligosaccharide-supplemented diet was not linked to the modulation of 
 innate immune function.
