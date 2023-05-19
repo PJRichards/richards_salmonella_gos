@@ -825,8 +825,8 @@ function-linked genes in cecal tissues to determine if the influence of GOS on t
 microbiota was associated with changes in host immunity. The supplementation of juvenile feed with GOS differentiated the 
 host response of chickens to SE colonization in the cecum at 22 days old (2 dpi), 
 with up-regulation of IL-8L2 (*p* = `r FC.stats %>% filter(Age=="22", gene=="'IL-8L2'") %>% pull(p_adjust) %>% round(3)`) 
-observed in SE-challenged birds on the control diet (Figure 2F), alongside up-regulation 
-of STAT3 (*p* = `r FC.stats %>% filter(Age==22, gene=="STAT3") %>% pull(p_adjust) %>% round(3)`) and TGIF1 (*p* = `r FC.stats %>% filter(Age==22, gene=="TGIF1") %>% pull(p_adjust) %>% round(3)`) (Figure S2A). 
+observed in SE-challenged birds on the control diet (Figure 3F), alongside up-regulation 
+of STAT3 (*p* = `r FC.stats %>% filter(Age==22, gene=="STAT3") %>% pull(p_adjust) %>% round(3)`) and TGIF1 (*p* = `r FC.stats %>% filter(Age==22, gene=="TGIF1") %>% pull(p_adjust) %>% round(3)`) (Figure S2). 
 
 Increases in anti-*Salmonella* serum antibodies were detected by ELISA in response 
 to *Salmonella* challenge. *Salmonella* infected chickens exhibited an increase 
