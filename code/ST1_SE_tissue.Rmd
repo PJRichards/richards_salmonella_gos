@@ -56,10 +56,10 @@ tissue_fmt2 <- tissue_fmt |>
                        )
             
 tissue_fmt3 <- tissue_fmt2 |> 
-                            mutate(Liverneg = paste0(LivernegPC," (",Liverneg,")"),
-                                   Liverpos = paste0(LiverposPC," (",Liverpos,")"),
-                                   Spleenneg = paste0(SpleennegPC," (",Spleenneg,")"),
-                                   Spleenpos = paste0(SpleenposPC," (",Spleenpos,")")) |> 
+                            mutate(Liverneg = paste0(Liverneg," (",LivernegPC,"%)"),
+                                   Liverpos = paste0(Liverpos," (",LiverposPC,"%)"),
+                                   Spleenneg = paste0(Spleenneg," (",SpleennegPC,"%)"),
+                                   Spleenpos = paste0(Spleenpos," (",SpleenposPC,"%)")) |> 
                             select(c(Age,Group,Liverneg,Liverpos,Spleenneg,Spleenpos))
 
 ```
