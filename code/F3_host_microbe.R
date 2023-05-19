@@ -38,7 +38,7 @@ ancombc_diet_path <- "results/ANCOMBC_diet.tsv"
 ancombc_chal_path <- "results/ANCOMBC_challenge.tsv"
 
 # output
-figpath <- "submission/fig3_hostmicrobe_test.pdf"
+figpath <- "submission/fig3_hostmicrobe.pdf"
 
 # formatting
 group_meta_id <- c("Trial", "Feed", "Challenge", "Age", "Replicate")
