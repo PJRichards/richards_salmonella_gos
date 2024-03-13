@@ -42,6 +42,6 @@ intervention against *Salmonella*.
 All analysis was performed within two conda environments (https://docs.conda.io/en/latest/). 
 The .yml recipe for each conda environment is available in this directory.
 
-The article can then be reproduced using the the following commands:
+The article can then be reproduced using the the following commands:  
 bash salmxgos_curate.batch  
 bash salmxgos_manuscript.batch
