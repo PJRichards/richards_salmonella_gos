@@ -1,2 +1,0 @@
-set.dir(input=results/mothur, output=results/mothur, seed=20122016)
-get.oturep(column=sal.trim.contigs.good.unique.good.filter.unique.precluster.denovo.vsearch.pick.pick.dist, list=sal.trim.contigs.good.unique.good.filter.unique.precluster.denovo.vsearch.pick.pick.opti_mcc.list, fasta=sal.trim.contigs.good.unique.good.filter.unique.precluster.denovo.vsearch.pick.pick.fasta, count=sal.trim.contigs.good.unique.good.filter.unique.precluster.denovo.vsearch.pick.pick.count_table)
