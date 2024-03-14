@@ -1,42 +1,40 @@
 ---
 title: ""
-output: word_document
+output: 
+  word_document:
+  latex_engine: xelatex
 fontsize: 12pt
 geometry: margin = 1in
 bibliography: sal_manuscript.bib
-csl: microbiome.csl
+csl: msystems.csl
 header-includes:
 - \usepackage{lineno}
 - \usepackage{setspace}
 - \doublespacing
+
 ---
 
 **Title**: Prebiotic galactooligosaccharide feed modifies the chicken gut microbiota 
-to efficiently clear *Salmonella*.
+to efficiently clear *Salmonella*
 
-**Running Head:** Prebiotic GOS accelerates *Salmonella* clearance.
+**Running Head:** Prebiotic GOS accelerates *Salmonella* clearance
 
-**Authors:** Philip J. Richards^1,2^, Abeer Almutrafy^1^, Lu Liang^1^, 
-Geraldine M. Flaujac Lafontaine^1^, Elizabeth King^1^, Neville M. Fish^3^, 
-Amber J. Connerton^1^, Phillippa L. Connerton^1^ and Ian F. Connerton^1,4^ 
+**Authors:** Philip J. Richards^1^, Abeer Almutrafy^1^, Lu Liang^1^, 
+Geraldine M. Flaujac Lafontaine^1^, Elizabeth King^1^, Neville M. Fish^2^, 
+Amber J. Connerton^1^, Phillippa L. Connerton^1^ and Ian F. Connerton^1,3^ 
 
 ^1^Division of Microbiology, Brewing and Biotechnology, School of Biosciences, 
 University of Nottingham, Loughborough, Leicestershire LE12 5RD, UK  
 
-^2^Future Food Beacon of Excellence and the School of Biosciences, University of 
-Nottingham, Loughborough, Leicestershire LE12 5RD, UK 
-
-^3^Saputo Dairy UK (c/o Simon Hunt), Saputo Dairy UK Innovation Centre, 
+^2^Saputo Dairy UK (c/o Simon Hunt), Saputo Dairy UK Innovation Centre, 
 Harper Adams University, Edgmond, Newport, TF10 8NB, UK
 
-^4^Lead Contact
+^3^Lead Contact
 
 *Correspondence: ian.connerton@nottingham.ac.uk
 
-The sequence data are available through the reviewer link: https://dataview.ncbi.nlm.nih.gov/object/PRJNA972431?reviewer=kcennaegcqi3ih5inha696tq8n
-
-Key words: prebiotic, GOS, galactooligosaccharide, chicken, broiler, 
-propionic acid, propionate, SCFA, salmonella, microbiome, microbiota
+Key words: prebiotic, GOS, galactooligosaccharide, chicken, propionic acid, 
+propionate, SCFA, Salmonella, microbiome, microbiota
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -46,164 +44,54 @@ set.seed(1216)
 # packages
 library("readr") 
 library("tidyr")
-library("dplyr")
-library("ggplot2")
-library("purrr")
-library("broom")
-library("FSA")
 library("stringr")
-library("readxl")
-library("forcats")
 
 # input
-SE_counts_raw_path <- "resources/zootechnical/late_SE_counts.csv"
 SE_enrich_raw_path <- "resources/zootechnical/late_SE_enrich.csv"
-bw_raw_path <- "resources/zootechnical/late_BW_cull.tsv"
-GE_path <- "resources/zootechnical/SE_challenge_host_gene_expression.xlsx"
-GE_sheet <- "T42 Cecal tonsil"
-scfa_raw_path <- "resources/zootechnical/late_scfa_concentrations.xls"
-vilus_raw_path <- "resources/zootechnical/late_vilus_length.csv"
-
-pcoa_path <- "results/mothur/sal.trim.contigs.good.unique.good.filter.unique.precluster.denovo.vsearch.pick.pick.opti_mcc.0.03.pick.braycurtis.0.03.lt.ave.pcoa.axes"
-pcoa_loadings_path <- "results/mothur/sal.trim.contigs.good.unique.good.filter.unique.precluster.denovo.vsearch.pick.pick.opti_mcc.0.03.pick.braycurtis.0.03.lt.ave.pcoa.loadings"
-
-alpha_path <- "results/mothur/sal.trim.contigs.good.unique.good.filter.unique.precluster.denovo.vsearch.pick.pick.opti_mcc.0.03.pick.groups.ave-std.summary"
 error_path <- "results/mothur/mock.error.count"
 
-bcabund_path <- "results/ANCOMBC_bc_abundance.txt"
-
-OTU_path <- "results/mothur/sal.trim.contigs.good.unique.good.filter.unique.precluster.denovo.vsearch.pick.pick.opti_mcc.shared"
-tax_path <- "results/mothur/sal.trim.contigs.good.unique.good.filter.unique.precluster.denovo.vsearch.pick.pick.opti_mcc.0.03.cons.taxonomy"
-
-aldex2_path <- "results/aldex2_glmtest.tsv"
-ancombc_diet_path <- "results/ANCOMBC_diet.tsv"
-ancombc_chal_path <- "results/ANCOMBC_challenge.tsv"
-
-# SCFA mol wt
-propionate_MolWt <- 74.08
-acetic_MolWt <- 60.05
-isobutyric_MolWt <- 88.11
-butyrate_MolWt <- 178.23
-methylbutyric_MolWt <- 102.13
-isovaleric_MolWt <- 102.13
-valerate_MolWt <- 102.13
-hexanoic_MolWt <- 116.16
-lactic_MolWt <- 90.08
-  
-# formatting
-days <- c(22,24,28,35)
-group_meta <- c("Trial", "Diet", "Challenge", "Age", "Replicate")
-tax_structure <- c("Kingdom", "Phyla", "Class", "Order", "Family", "Genus")
-scfa_of_interest <- c("Propionate", "Butyrate", "Valerate")
-scfa_names <- c(`Acetic acid` = "[Acetic Acid]", 
-                Propionate = "[Propionic Acid]", 
-                `Isobutyric acid` = "[isoButyric Acid]", 
-                Butyrate = "[Butyric Acid]",
-                `2-Methyl butyric acid` = "[2-Methyl butyric Acid]",  
-                `Isovaleric acid` = "[isoValeric Acid]",  
-                Valerate = "[Valeric Acid]",
-                `Hexanoic acid` = "[Hexanoic Acid]", 
-                `Lactic acid` = "[Lactic Acid]"
-                )      
-
-min.prevalence = 0.1
-min.depth = 50  
-
 ```
 
-```{r OTU get, include=FALSE}
-# read in OTUs
-OTU_raw <- read_tsv(OTU_path)
+Abstract word count: 250 words  
+Text word count: 4794 words
 
-# read in taxonomy data from mothur
-tax_raw <- read_tsv(tax_path) 
-
-tax <- tax_raw %>% 
-                separate(Taxonomy, tax_structure, ";") %>% 
-                mutate(id = paste0(str_replace(Genus, "\\(.*\\)", ""), " (", OTU, ")")) %>%  
-                select(-Size)
-
-OTU_reads <- OTU_raw %>% 
-                select(-c(label, numOtus)) %>% 
-                pivot_longer(cols = -Group,
-                             names_to = "OTU",
-                             values_to = "reads") %>% 
-                pivot_wider(names_from = Group,
-                            values_from = reads) %>% 
-                left_join(tax)
-
-# merge OTU and taxonomy data
-OTU_tax <- inner_join(tax, OTU_reads, by = "OTU") 
-
-OTU_reads_long <- OTU_reads %>% 
-                  pivot_longer(cols = where(is.double),
-                               names_to = "Group",
-                               values_to = "reads") %>% 
-                  mutate(cohort = str_sub(Group, 3, 9),
-                         age = str_sub(Group, 11, 12),
-                         replicate = str_sub(Group, -1L, -1L))  
-
-# make data 'tidy'
-OTU_long <- OTU_reads_long %>% 
-                  group_by(Group) %>% 
-                  mutate(total = sum(reads), 
-                         RA = 100*(reads/total)) %>% 
-                  select(-total)
-
-# format reads x taxa
-OTU_wide <- OTU_long %>% 
-                      select(-c(OTU, Kingdom, Phyla, Class, Order, Family, Genus,reads)) %>% 
-                      pivot_wider(names_from = id,
-                                  values_from = RA) 
-
-```
-
-
-\newpage
-\linenumbers
-
-## Abstract  
-
-**Background**
-Chicken meat can be contaminated with *Salmonella* originating from the gastrointestinal 
-tract of infected chickens during slaughter. Total eradication of *Salmonella* from 
-flocks of broiler (meat) chickens through hygiene measures and/or vaccination regimes 
-is not deemed cost-effective, so complementary approaches are sought. A mature gut 
-microbiota is an obstruction to *Salmonella* infection in chickens and deliberate 
-fortification of colonization resistance in juvenile chickens through prebiotic 
-feed formulations would benefit both public health and the poultry industry. 
+## Abstract
+Chicken meat is contaminated with *Salmonella* originating from the gut of infected 
+chickens during slaughter. Eradication of *Salmonella* from broiler (meat) chickens 
+through hygiene measures and/or vaccination is not cost-effective, so complementary 
+approaches are sought. A mature gut microbiota obstructs *Salmonella* infection 
+in chickens and deliberate fortification of colonization resistance through 
+prebiotic feed formulations would benefit public health and the poultry industry. 
 Prebiotic galactooligosaccharides have been shown to hasten clearance of *Salmonella* 
-from the gut of infected chickens. To better understand the role of galactooligosaccharides 
-in colonization resistance broiler chickens were raised on a wheat-soybean meal-based 
-feed, with or without added galactooligosaccharide for the first 24-days of life. 
-Chickens were then orally challenged with *Salmonella enterica* serovar Enteritidis 
-at 20-days-old and the effect of supplementary galactooligosaccharides characterized 
-by profiling *Salmonella* colonization, gut microbiota, host innate immune response 
-and cecal SCFA concentrations.  
+from the gut of infected chickens. To better understand the role of 
+galactooligosaccharides in colonization resistance broiler chickens were raised 
+on a wheat-soybean meal-based feed, with or without added galactooligosaccharide 
+for the first 24-days of life. Chickens were then orally challenged with 
+*Salmonella enterica* serovar Enteritidis at 20-days-old and the effect of 
+supplementary galactooligosaccharides characterized by profiling *Salmonella* 
+colonization, gut microbiota, innate immune response and cecal SCFA concentrations. 
+Exposure to dietary galactooligosaccharides shortened the time to clear *S*. Enteritidis 
+from the ceca. Differential abundance analysis of the cecal microbiota associated 
+*Salmonella*-challenge with a bacterial taxon belonging to the Acidaminococcaceae 
+family. Increased cecal concentrations of the short-chain fatty acids propionate 
+and valerate were measured in *Salmonella*-challenged chickens sustained on either 
+control or galactooligosaccharide-supplemented feed relative to mock-challenged 
+controls; but far greater concentrations were detected in chickens fed a 
+galactooligosaccharide-supplemented diet in early life. Propionate and valerate 
+concentrations corresponded with the abundance of the Acidaminococcaceae taxon. 
+The absence of cecal proinflammatory transcriptional responses suggest that the 
+rapid *Salmonella*-clearance observed for the galactooligosaccharide-supplemented 
+diet was not linked to innate immune function.
 
-**Results**
-Exposure to dietary galactooligosaccharides shortened the time required for chickens 
-to clear *S*. Enteritidis from the ceca. Differential abundance analysis of the cecal 
-microbiota associated *Salmonella*-challenge with a bacterial taxon belonging to 
-the Acidaminococcaceae family. Increased concentrations of the short chain fatty 
-acids propionate and valerate were measured in the ceca of *Salmonella*-challenged 
-chickens sustained on either control or galactooligosaccharide-supplemented feed 
-relative to mock-challenged controls; but far greater concentrations were detected 
-in chickens fed a galactooligosaccharide-supplemented diet in early life. Propionate 
-and valerate concentrations corresponded with the abundance of the Acidaminococcaceae 
-taxon. The absence of cecal proinflammatory chemokine/cytokine
-transcriptional responses suggest that the *Salmonella*-clearance observed for 
-the galactooligosaccharide-supplemented diet was not linked to the modulation of 
-innate immune function.  
-
-**Conclusions**
-We hypothesise that catabolism of galactooligosaccharide and its breakdown products 
-by indigenous taxa colonizing the cecal pouches yield excess levels of propionate. 
-In the absence of gross inflammation propionate is inimical to *Salmonella* 
-which hastens the clearance time. Work presented here identifies some of 
-the bacterial taxa responsible for colonization resistance to *Salmonella* colonization 
-in broiler chickens. Deliberate cultivation of these taxa with prebiotic galactooligosaccharide
-presents a straight-forward, safe and cost-effective intervention against *Salmonella*.  
+## Importance
+Work presented here identifies bacterial taxa responsible for colonization resistance 
+to *Salmonella* in broiler chickens. Deliberate cultivation of these taxa with 
+prebiotic galactooligosaccharide has potential as a straight-forward, safe and 
+cost-effective intervention against *Salmonella*. We hypothesise that catabolism 
+of galactooligosaccharide and its breakdown products by indigenous microorganisms 
+colonizing the chicken gut produce excess levels of propionate. In the absence of 
+gross inflammation propionate is inimical to *Salmonella* and hastens intestinal 
+clearance.
 
 ## Introduction
 *Salmonella enterica* is a leading cause of diarrheal disease in humans [@troeger2017estimates] 
@@ -248,274 +136,51 @@ a mixture of oligosaccharides composed of 2 to 8 monomeric units [@vanleeuwen201
 GOS have been shown to accelerate the clearance of *S.* Typhimurium from the ceca of layer 
 hens [@azcarate2018attenuated]. Parallel observations that the supplementation of 
 drinking water with a GOS preparation led to increased cecal propionate levels in 
-rats [@fernandez2018galacto] and that competitive exclusion of *Salmonella* 
+rats [@fernandez2018galacto] and that competitive exclusion of *S.* 
 Typhimurium in mice is mediated by propionate generated by *Bacteroides* [@jacobson2018propionate] 
 suggest a common mechanistic role for propionate. 
 
-Consumer demand for chicken
-meat remains high but competition between broiler chicken producers in a market 
-where the rising costs of raw materials and energy necessitate that production 
+Consumer demand for chicken meat remains high but competition between broiler chicken producers, in a market 
+with rising costs of raw materials and energy, necessitates that production 
 costs are tightly controlled. With the financial burden associated with dietary 
 GOS inclusion in mind, supplementary GOS was included in the lower volume starter 
 (0 - 10 days old) and grower (11 - 24 days old) diets at 2.32% (w/w) and 1.14% 
 (w/w) respectively. We report that dietary GOS and *Salmonella*-challenge 
 shape the mature broiler chicken cecal microbiota to affect the 
-abundances of short-chain fatty acids and host innate immune responses, which act
+abundances of short-chain fatty acids, which act
 to efficiently clear *Salmonella* colonization.
-
-# Materials and methods
-
-## Chickens
-Commercial male Ross 308 broiler chicks were obtained as hatchlings (PD Hook, UK) 
-and housed under strict biosecurity in a controlled environment operating at 
-containment level 2 (https://www.hse.gov.uk/biosafety/management-containment-labs.pdf) 
-at the University of Nottingham. Ambient temperature and relative humidity were 
-controlled as dictated in the Code of Practice for the Housing and Care of 
-Animals Bred, Supplied or Used for Scientific Purposes. Feeds were formulated on 
-a least cost basis to meet the requirements set out in the Ross 308 Broiler 
-Nutrition Specifications 2014 (Aviagen, UK) and prepared by Target Feeds Ltd 
-(Shropshire, UK). Throughout the trial feed and water were provided *ad libitum*. 
-In order to ensure that the birds were *Salmonella* free upon arrival, the 
-absorbent papers on which the birds had been transported were shredded and then 
-added to Buffered Peptone Water (Oxoid, UK) for *Salmonella* enrichment as 
-described below.
-
-## Feeding regime
-The feeding regime was as follows: the control diet group was sustained on a 
-wheat-soybean meal-based feed provided as a starter crumb at 0-10 days, grower 
-pellets at 11-24 days and finisher pellets at 25-35 days. The starter diet contained 
-wheat (59.9% w/w), soya meal (32.5% w/w), soyabean oil (3.65% w/w), limestone 
-(0.6% w/w), calcium phosphate (1.59% w/w), sodium bicarbonate (0.27% w/w), the 
-enzymes phytase and xylanase (dosed according to the manufacturer's instructions 
-(DSM Nutritional Products Ltd., CH) and a vitamin mix containing salt, lysine HCl,
-DL-methionine and threonine. The grower and finisher diets increased the wheat 
-content at the expense of soya meal by 2 and 5% w/w respectively. GOS was 
-provided as Nutrabiotic® GOS 64%, batch no. AQ8035 (Saputo Dairy, UK). 
-Galacto-oligosaccharide preparations are manufactured by the β-galactosidase 
-catalysed transglycosylation of lactose producing, in the case of batch AQ8035: 
-glucose and galactose (22.4 % m/m DM), lactose (10.1 % m/m DM) and other 
-disaccharides that are functionally included as galactooligosaccharides, and
-galactooligosaccharides (DP2 to DP8+ and typically of the form (gal)n-glc). 
-Nutrabiotic® GOS 64% is produced as a feed grade syrup; batch AQ8035 has a dry 
-matter concentration of 73.4% m/m and a total galactooligosaccharides concentration 
-of 66.5% m/m DM. Starter feed was supplemented with 2.32% w/w GOS and isocaloric 
-adjustments made in the wheat and soybean oil contents. The grower feed contained 
-1.16% GOS with the wheat and soybean oil contents adjusted accordingly. Nutrabiotic® 
-GOS was not added to the finisher feed. The final feeds were isocaloric 
-with the same content of crude protein and Degussa poultry digestible amino acid.
-
-## Challenge trial
-*Salmonella enterica* serovar Enteritidis P125109 [@thomson2008comparative]
-was selected as a challenge strain as the nalidixic acid resistance it exhibits 
-facilitates enumeration through direct cultivation. The challenge trial was 
-performed to determine the effects of *Salmonella* exposure on broiler chickens 
-sustained on GOS-supplemented feed, where the experimental implementation and 
-husbandry were conducted according to the ARRIVE guidelines [@kilkenny2010ARRIVE]. 
-Upon arrival chicks were weighed and randomly placed in pens of either 5 or 6 
-birds in one of two environmentally controlled containment rooms. Each room 
-contained 14 independent pens with 7 pens per experimental group designated to 
-receive either the control or GOS-supplemented feed. Samples were subsequently 
-collected from a single chicken from each pen at each experimental timepoint, 
-with each independent pen representing the experimental unit (*n* = 7). At 
-20-days-old chickens in one room were orally challenged with 4.6 x 10^8^ CFU  
-*S.* Enteritidis suspended in 1 ml of Maximum Recovery Diluent (MRD; Oxoid, UK)
-or in the second room given an equivalent mock dose of sterile MRD. Following 
-challenge samples were collected at 2, 4, 8 and 15 days post-infection. 
-
-Live weights were recorded for the chickens selected at random from each pen 
-for each time point, and the birds euthanized by exposure to rising CO~2~ or 
-parenteral barbiturate overdose followed by cervical dislocation in accord with 
-Schedule 1 of the UK Animals (Scientific Procedures) Act. Sample tissues, 
-cardiac blood and intestinal contents were collected immediately post-mortem. 
-Ileal tissues were sectioned from approximately 3 cm distal to Meckel's 
-diverticulum and cecal tissues from the distal tips of the ceca. Intestinal 
-tissues were either flash frozen in liquid nitrogen for subsequent RNA isolation 
-or preserved in 10% (w/v) neutral buffered formalin (Fisher Scientific, UK) for 
-histological assessment. Approximately 1 g of cecal contents was aseptically 
-collected from the distal end of each cecal pouch and flash frozen in liquid 
-nitrogen before being stored at -80°C prior to genomic DNA isolation. A further 
-2-3 g sample of cecal contents was similarly collected from both ceca and combined 
-in pre-weighed Universal vials before being stored on ice prior to *Salmonella* 
-enumeration and SCFA analysis. Prior to incising the gut, the spleen and liver 
-were aseptically excised to sterile polythene bags that were also stored 
-on ice prior to *Salmonella* enumeration.
-
-## *Salmonella* enumeration
-Cecal contents were serially diluted 1:10 in MRD and 100 μl aliquots from a range 
-of dilutions were spread onto XLD agar (Oxoid, UK) modified with 1 μg/ml Novobiocin 
-(Sigma-Aldrich, UK) and 12.5 μg/ml Nalidixic acid (Sigma-Aldrich). Cecal contents 
-collected from each euthanized chicken were plated in triplicate and incubated at
-37°C for 24 h prior to enumeration. Mean values of log~10~-transformed colony-forming 
-units were used for statistical analysis. *Salmonella* was detected 
-through enrichment by transferring ~0.1 g cecal contents or bedding papers to 
-50 ml BPW that was then incubated at 37°C for 16-20 h before 0.1 ml volumes of the
-BPW suspension were dispensed onto MSRV agar (Oxoid) in triplicate. MSRV plates were
-incubated without inversion at 42°C for 24 h before any growth was sub-cultured 
-to XLD plates (with no nalidixic acid or novobiocin added) and incubated at 37°C.
-Presumptive *Salmonella* colonies were confirmed with Poly O antiserum (Pro-Lab 
-Diagnostics, UK). Liver and spleen tissues (1 - 5 g) were suspended 1:10 w/v in BPW 
-and disrupted in a Seward Stomacher 80 (Seward Biomaster, UK) for 1 min on medium 
-speed. Viable *Salmonella* present were recovered by direct plating 
-of 0.1 ml of the tissue suspension onto modified XLD or through enrichment by 
-incubating the remaining tissue suspension followed by isolation of any 
-*Salmonella* present on MSRV. Incubation conditions and confirmation methods are 
-as described above.
-
-## 16S rRNA Gene sequences and analysis
-Total DNAs were isolated from cecal contents using a QIAcube HT apparatus and 
-QIAamp PowerFecal Pro DNA kit (Qiagen, UK). Bacterial 16S rRNA gene sequences
-were PCR amplified using universal primers: 515f (5' GTGCCAGCMGCCGCGGTAA 3') 
-and 806r (5' GGACTACHVGGGTWTCTAAT 3') designed to flank the hypervariable V4 
-region of the 16S rRNA genes [@caporaso2011global]. Amplicons were sequenced 
-on the Illumina MiSeq platform (Illumina, USA) using 2 × 250 bp cycles according 
-to the manufacturer’s instructions and the protocol described by Kozich *et al.* 
-[@kozich2013sop]. Using the same protocol, no-template negative control amplicon 
-libraries were prepared for both kit reagent and PCR batches and a positive control
-library was prepared from a defined mock community (ZymoBIOMICS Microbial Community 
-DNA Standard, Zymo Research, USA). Mothur code to reproduce the analyses has been 
-made available (see Data and code availability statement). All sequence data of 
-the 16S rRNA genes were quality filtered and then clustered into operational 
-taxonomic units (OTUs) in mothur v1.45.3 and v1.48 [@schloss2009introducing] 
-using the MiSeq as described by the package developers [@kozich2013sop].
-
-### Host gene expression analysis
-Chicken intestinal total RNA was isolated from ileal and cecal tonsil tissues. 
-Tissue biopsies were weighed out to 100 mg followed by homogenization with 
-RLT lysis buffer supplied with the RNeasy kit (Qiagen, Germany) and 2.8 mm 
-ceramic beads (MO BIO Laboratories Inc., Canada) in a TissueLyser II (Qiagen) 
-bead mill. Total RNA was then extracted from lysates using the RNeasy kit and 
-QIAcube HT (Qiagen). The quality of the extracted RNAs were analyzed using a 
-TapeStation 2200 (Agilent, USA) by measuring the RNA integrity number. Reverse
-transcription of extracted RNA was carried out with the RT2 First Strand Kit 
-(Qiagen) to synthesise the first-strand cDNA and remove any residual genomic DNA 
-according to manufacturer’s instruction. The expression of host cytokine and 
-chemokine genes were determined by qPCR with RT2 SYBR Green qPCR Mastermix 
-(Qiagen) in a Roche Diagnostics Light Cycler 480 instrument (Hoffmann La Roche AG, 
-Switzerland). Primers were provided by customized RT2 Profiler PCR Arrays (Qiagen) 
-to include genes of IFN-$\gamma$, IL-1$\beta$, IL-4, IL-6, IL-8L1, IL-8L2, IL-9, 
-IL-10, IL-13, IL-15, IL-17A, IL-22, NOS2, STAT3, STAT4, STAT6, STAT5$\beta$, 
-GATA3 and TGIF1 in chicken. GAPDH and RPL4 were selected as internal control for 
-relative quantification between treatment groups.
-
-## Immunoglobin quantification
-Anti-*Salmonella* IgY and IgA antibodies in chicken serum were detected by 
-enzyme-linked immunosorbent assay (ELISA) using the method of Withanage *et al.*
-[@withanage2005cytokine] with the following modifications. *Salmonella* 
-Enteritidis P125109 cells were subjected to 3 freeze–thaw cycles between 
-room-temperature and -80°C, followed by sonication on ice using 9 x 20 s bursts
-to break the cells. Unbroken cells were removed by centrifugation at 4000 x g 
-for 20 min at 4 °C followed by filtration through a 0.2 µm filter. The protein
-concentration of the resultant soluble fraction was measured using Pierce BCA kit
-(Thermofisher, UK) and aliquots stored at -20 °C. For ELISA chicken serum 
-samples were diluted 1:250 for IgT and 1:100 for IgA with PBS containing 
-Tween 20 (0.05%) (PBS-T) and 3% skimmed milk powder (SMP). Horse radish 
-peroxidase (HRP) conjugated rabbit anti-chicken IgY (Sigma Aldrich) and goat
-anti-chicken (Abcam, UK) were diluted 1:5000 in PBS-T 3% SMP. The enzyme 
-substrate used was 3,3´,5,5´-tetramentylbenzidine (TMB; Thermofisher) with the 
-reaction stopped with 100 µl 2 M sulphuric acid after 30 min and absorbance read 
-at 450 nm.
-
-## SCFA quantification
-Duplicate samples were analysed for the short chain fatty acids (SCFA): 
-acetic, (≥99%; Thermofisher), propionic, (99%; Thermofisher), butyric, (≥99%;
-Thermofisher), isobutyric, (≥99%; Thermofisher), 2-methylbutyric, (>95%; 
-TCI UK Ltd., UK), valeric, (99%; Thermofisher), isovaleric, (99%; Thermofisher), 
-hexanoic, (98%; TCI UK Ltd.) and lactic acid, (90.2%; Thermofisher) by GC MS. 
-Samples were prepared from weighed thawed cecal content material by sonication 
-with the addition of 2-methylvaleric acid (>98%, Thermofisher) as internal 
-standard. The SCFAs were converted to the ethyl ester and extracted into pentane 
-(AR Grade; Thermofisher) along with the additions of the corresponding internal
-standards. The internal standards were separately synthesised as the deuterated 
-ethyl ester for each SCFA, except for ethyl lactate D5-benzoate the internal 
-standard for lactic acid analysis. Sample SCFA concentrations were measured by 
-GC-MS (Agilent 6890 + 5977 GC-MS; Agilent DB 5MS UI, 15 m x 0.25 mm x 1.00 µm 
-column; He carrier gas at 1.20 mL/min.; using a defined oven temperature profile 
-over a run time of 33.2 min.; operated in selected ion monitoring (SIM) mode 
-with 10 different SIM groups) with reference to a standard curve for each SCFA, 
-with each calibrant being prepared using a procedure similar to that for the 
-samples. 
-
-## Quantification and statistical analysis
-The statistical tests used are detailed in figure legends. Statistical analyses 
-were performed in the R language (version 4.2.2). Mothur (version 1.48) was used 
-to curate and analyse 16S amplicon data. All analyses were performed within a 
-conda environment (https://docs.conda.io/en/latest/), and the .yml recipe for 
-the conda environment is available on Github (https://github.com/PJRichards/richards_salmonella_gos). 
-R code to reproduce the analyses and all figures has also been made available on 
-Github (https://github.com/PJRichards/richards_salmonella_gos).
-The design for Figure 3C, D and E was adapted from Wallen *et al* [@wallen2022metagenomics].
 
 ## Results
 
 ### Dietary GOS in early life hastens *Salmonella* cecal clearance from broiler chickens
 ```{r salmonella colonization, include=FALSE}
+# draw Figure 2
+source("code/F2_SE_effect.R", echo=TRUE)
 
 # read in data
-counts <- read_csv(SE_counts_raw_path)
-enrich_raw <- read_csv(SE_enrich_raw_path)
+SE_enrich_raw <- read_csv(SE_enrich_raw_path)
 
 # format
-enrich <- enrich_raw %>% 
+SE_enrich <- SE_enrich_raw %>% 
                       separate(col = "bird", sep = "_", 
                                into = c("group","age","bird")) %>% 
                       group_by(group,age,site) %>% 
                       summarise(n = n(),
                                 pos = sum(str_count(status, 'pos')))
 
-# n
-sal_count_n <- counts %>% group_by(Cohort, Age) %>% summarise(n = n())
-
-# calculate significance
-counts_stats <- counts %>% 
-                          select(-c(bird_id, Challenge, Cohort)) %>% 
-                          group_nest(Age) %>% 
-                          mutate(results = map(data, ~tidy(
-                                    wilcox.test(`Salmonella (log10 CFU)` ~ Diet, 
-                                                            paired = FALSE, 
-                                                            exact = FALSE,
-                                                            data = .)))) %>% 
-                          unnest(cols = results)
-
 ```
 
-```{r microbiota, include=FALSE}
-alpha_raw <- read_tsv(alpha_path) 
-
-alpha <- alpha_raw %>% 
-                      filter(method == "ave") %>% 
-                      separate(group, group_meta, "_") %>% 
-                      mutate(Cohort = paste(Diet, Challenge),
-                                       Diet = if_else(Diet == "gos", "GOS", Diet),
-                                       Challenge = if_else(Challenge == "sal", "SE", 
-                                                    if_else(Challenge == "unc", "Mock", "fail")))
-
-alpha_nest <- alpha %>% 
-                      group_nest(Age)
-
-alpha_stats <- alpha_nest %>% 
-                          mutate(test = map(data, ~ dunnTest(invsimpson ~ Cohort, data=., method="bh")$res),
-                                 ctl = map(test, 4),
-                                 ctl = map(ctl,1))
-
-
-
-```
-Azcarate *et al.*[@azcarate2018attenuated] reported that supplementation of a 
+Azcarate-Peril *et al.* [@azcarate2018attenuated] reported that supplementation of a 
 corn-soybean based-feed with 0.55% w/w GOS hastened clearance of *S.* Typhimurium 
 from the ceca of white leghorn layer chickens. However, the effectiveness of 
 prebiotics in poultry is dependent on the prebiotic formulation and the microbes
-colonizing the gastrointestinal tract [@ricke2020prebiotics]. Where the latter 
-are affected by the feed composition and the breed of chicken [@wen2021contributions]. 
-To test if GOS promoted the clearance of *Salmonella* from broiler chickens 
-sustained on an alternate standard feed composition we orally challenged 20-day-old 
+colonizing the gastrointestinal tract [@ricke2020prebiotics]. To test if GOS 
+promoted the clearance of *Salmonella* from broiler chickens sustained on an 
+alternate standard feed composition we orally challenged 20-day-old 
 Ross 308 broiler chickens raised on wheat-soybean meal-based feed with *Salmonella*
-Enteritidis. Chickens were fed either a control diet (ctl group) formulated as 
-least difference without GOS or a diet with supplementary GOS inclusion for 
-juvenile birds up until 24 days old (jGOS group). Figure 1 summarizes the timings 
-of changes in feed composition, *Salmonella* challenge and sample collection. 
-The coprophagous behavior of co-housed chickens means the birds are exposed to 
-bacteria from each other's intestinal content and therefore in this design the 
-pen is the independent experimental unit (*n* = 7). Additionally, as age is 
+Enteritidis. Chickens were fed either a control diet (ctl group) or a diet with
+supplementary GOS inclusion for juvenile birds up until 24 days old (jGOS group). 
+As age is 
 known to influence both the persistence of *Salmonella* infection and the ecology 
 of the gut microbiota [@beal2004age; @richards2019development; @ocejo2019productive];
 intestinal contents and tissue samples were collected from birds sacrificed over 
@@ -528,102 +193,76 @@ diet.
 
 At 22 and 24 days-old, equal to 2 and 4 dpi, similar levels of viable 
 *Salmonella* were cultured from the cecal contents of *Salmonella* challenged 
-chickens raised on either control or GOS-supplemented feed (*p* $\leq$ `r  round(counts_stats %>% filter(Age == 22 | Age == 24) %>% pull(p.value) %>% min(), 3)`; Figure 2A).
+chickens raised on either control or GOS-supplemented feed (*p* $\geq$ `r round(SE_counts_stats %>% filter(Age == 22 | Age == 24) %>% pull(p.value) %>% min(), 3)`; Figure 2A).
 However, by 28 days-old (8 dpi) the levels of *Salmonella* isolated from the cecal 
 contents of chickens on the control diet were greater than those recovered 
-from jGOS birds (*p* = `r  round(counts_stats %>% filter(Age == 28) %>% pull(p.value), 3)`). 
-Correspondingly, *Salmonella* could only be directly enumerated from `r counts %>% filter(.[[2]]==28,.[[4]]=="GOS", .[[5]]>1.7) %>% nrow()` of the `r counts %>% filter(.[[2]] == 28,.[[4]]=="GOS") %>% nrow()` chickens 
+from jGOS birds (*p* = `r  round(SE_counts_stats %>% filter(Age == 28) %>% pull(p.value), 3)`). 
+Correspondingly, *Salmonella* could only be directly enumerated from `r SE_counts %>% filter(.[[2]]==28,.[[4]]=="GOS", .[[5]]>1.7) %>% nrow()` of the `r SE_counts %>% filter(.[[2]] == 28,.[[4]]=="GOS") %>% nrow()` chickens 
 from the jGOS group, with recovery of *Salmonella* from the cecal content of the 
-remaining `r counts %>% filter(.[[2]] == 28,.[[4]]=="GOS", .[[5]]<=1.7) %>% nrow()` 
+remaining `r SE_counts %>% filter(.[[2]] == 28,.[[4]]=="GOS", .[[5]]<=1.7) %>% nrow()` 
 birds dependent on enrichment culture methods. *Salmonella* was directly 
-enumerated from `r counts %>% filter(.[[2]] == 28,.[[4]]=="ctl", .[[5]]>1.7) %>% nrow()` 
-of the `r counts %>% filter(.[[2]] == 28,.[[4]]=="ctl") %>% nrow()` chickens on 
+enumerated from `r SE_counts %>% filter(.[[2]] == 28,.[[4]]=="ctl", .[[5]]>1.7) %>% nrow()` 
+of the `r SE_counts %>% filter(.[[2]] == 28,.[[4]]=="ctl") %>% nrow()` chickens on 
 the control diet, with enrichment only required to recover *Salmonella* from 
-`r counts %>% filter(.[[2]] == 28,.[[4]]=="ctl", .[[5]]<=1.7) %>% nrow()` birds; 
+`r SE_counts %>% filter(.[[2]] == 28,.[[4]]=="ctl", .[[5]]<=1.7) %>% nrow()` birds; 
 indicating that higher levels of *Salmonella* were present in chickens raised on the control
 feed (Figure 2A). One week later, at 35-days old (15 dpi), the levels of *Salmonella* 
-isolated in chickens from the jGOS group remained lower than those in chickens on the control diet 
-(*p* = `r round(counts_stats %>% filter(Age == 35) %>% pull(p.value), 3)`). 
-At this time *Salmonella* was directly enumerated from `r counts %>% filter(.[[2]] == 35,.[[4]]=="ctl", .[[5]]>1.7) %>% nrow()` of the `r counts %>% filter(.[[2]] == 35, .[[4]]=="ctl") %>% nrow()` chickens 
+isolated from chickens from the jGOS group remained lower than those in chickens on the control diet 
+(*p* = `r round(SE_counts_stats %>% filter(Age == 35) %>% pull(p.value), 3)`). 
+At this time *Salmonella* was directly enumerated from `r SE_counts %>% filter(.[[2]] == 35,.[[4]]=="ctl", .[[5]]>1.7) %>% nrow()` of the `r SE_counts %>% filter(.[[2]] == 35, .[[4]]=="ctl") %>% nrow()` chickens 
 on the control diet but was not recoverable from the cecal contents of any of the 
-`r counts %>% filter(.[[2]] == 35,.[[4]]=="GOS") %>% nrow()` chickens from the jGOS 
+`r SE_counts %>% filter(.[[2]] == 35,.[[4]]=="GOS") %>% nrow()` chickens from the jGOS 
 group even with the aid of enrichment (Figure 2A). *S*. Enteritidis is frequently
 found in the spleen and liver of chickens after oral challenge [@zeng2018distribution].
-By 4 dpi *Salmonella* was detected by enrichment from the spleens and livers of `r enrich %>% filter(age==22) %>% pull(n) %>% unique()` of 
-`r enrich %>% filter(age==22) %>% pull(n) %>% min()` birds from the challenged 
+By 4 dpi *Salmonella* was detected by enrichment from the spleens and livers of `r SE_enrich %>% filter(age==22) %>% pull(n) %>% unique()` of 
+`r SE_enrich %>% filter(age==22) %>% pull(n) %>% min()` birds from the challenged 
 chickens of both the control and jGOS diet groups, but by 15 dpi (35 days old)
-*Salmonella* could only be enriched from the livers of `r enrich %>% filter(age==35,site=="Liver") %>% pull(pos) %>% unique()` 
-of `r enrich %>% filter(age==35,site=="Liver") %>% pull(n) %>% unique()` chickens
+*Salmonella* could only be enriched from the livers of `r SE_enrich %>% filter(age==35,site=="Liver") %>% pull(pos) %>% unique()` 
+of `r SE_enrich %>% filter(age==35,site=="Liver") %>% pull(n) %>% unique()` chickens
 in each group (Table S1). Correspondingly, *Salmonella* was recovered from the 
-spleens of `r enrich %>% filter(age==35,site=="Spleen", group=="Gp 3") %>% pull(pos)` of `r enrich %>% filter(age==35,site=="Spleen", group=="Gp 3") %>% pull(n)` 
-chickens from the control group and `r enrich %>% filter(age==35,site=="Spleen", group=="Gp 4") %>% pull(pos)` of `r enrich %>% filter(age==35,site=="Spleen", group=="Gp 4") %>% pull(n)` chickens from the jGOS 
+spleens of `r SE_enrich %>% filter(age==35,site=="Spleen", group=="Gp 3") %>% pull(pos)` of `r SE_enrich %>% filter(age==35,site=="Spleen", group=="Gp 3") %>% pull(n)` 
+chickens from the control group and `r SE_enrich %>% filter(age==35,site=="Spleen", group=="Gp 4") %>% pull(pos)` of `r SE_enrich %>% filter(age==35,site=="Spleen", group=="Gp 4") %>% pull(n)` chickens from the jGOS 
 group. 
 
-```{r broiler performance, include=FALSE}
-
-# read in data
-bw <- read_tsv(bw_raw_path)
-
-# show n
-bw %>% group_by(Age, Diet, Challenge) %>% count() %>% pull(n) %>% unique()
-
-# Are mass data normally distributed
-bw %>% 
-      group_by(Diet, Challenge, Age) %>% 
-      summarise(shapiro = shapiro.test(LBW)$p.value)
-
-bw %>% 
-      ggplot(aes(sample = LBW)) + 
-            stat_qq() + 
-            stat_qq_line() + 
-            facet_grid(rows= vars(Diet,Challenge), 
-                           cols = vars(Age))
-
-# perform kruskal test for significance
-bw_kw <- bw %>% 
-              mutate(cohort = paste0(Diet,"_", Challenge)) %>% 
-              select(-c(Group, bird_ID, Challenge, Diet)) %>% 
-              group_by(Age) %>% 
-              nest(data = c(LBW, cohort)) %>% 
-              mutate(kruskal_raw = map(data, ~ kruskal.test(.x$LBW, .x$cohort)),
-                     kruskal = map(kruskal_raw, broom::tidy)) %>% 
-              unnest(kruskal)
-
-bw_pw <- 
-    bw_kw %>% 
-            filter(`p.value` < 0.05) %>% 
-            select(-`p.value`) %>%  
-            mutate(wilcox_raw = map(data, ~                                         
-                                    pairwise.wilcox.test(.x$LBW, g = .x$cohort, 
-                                                         p.adjust.method = "BH")),
-                   wilcox = map(wilcox_raw, tidy)) %>% 
-            unnest(cols = wilcox)
-
-```
 Previously we have reported that supplementing feed with GOS improves 
 the growth rate of *Salmonella*-free chickens on a wheat-soybean meal-based 
 feed [@richards2020gos]. In the results presented here the body weights of 
 *Salmonella* challenged chickens in the jGOS group were greater than 
-mock-challenged chickens on the calorie-balanced control diet at `r bw_pw %>% filter(p.value <= 0.05) %>% pull(Age)` days 
-old (*p* = `r bw_pw %>% filter(p.value <= 0.05) %>% pull(p.value) |> round(3)`; Figure 2B), 
+mock-challenged chickens on the calorie-balanced control diet at `r weight_pw %>% filter(p.value <= 0.05) %>% pull(Age)` days 
+old (*p* = `r weight_pw %>% filter(p.value <= 0.05) %>% pull(p.value) |> round(3)`; Figure 2B), 
 corresponding with the end of the period during which supplementary GOS was 
 added to the diet. No significant difference in the body weights was detected at 
-22, 28 or 35 days in the presence or absence of the GOS, which included the 
-SE-challenged birds that did not suffer any growth check. These findings indicate 
-that whilst dietary inclusion of GOS in early life hastened the clearance of 
+28 or 35 days, which included the SE-challenged birds that did not suffer any growth check. 
+These findings indicate that whilst dietary inclusion of GOS in early life hastened the clearance of 
 *Salmonella*, the inclusion did not effect the body weight at 35 days old.
 
 ### Dietary GOS in early life affects cecal microbiota diversity following *Salmonella* Enteritidis challenge 
-Mon *et al*.[@mon2020integrative] reported that *S*. Enteritidis colonization of the 
+```{r rarefaction, include=FALSE}
+# draw Supplementary Figure 1
+source("code/SF1_rarefaction.R", echo=TRUE)
+
+```
+```{r microbiota, include=FALSE}
+# draw Figure 3
+source("code/F3_host_microbe.R", echo=TRUE)
+
+# format stats output for inline reporting
+dunnflat <- dunn %>% 
+                    mutate(model = map(dunntest, ~(.)$res)) %>% 
+                    unnest(cols=model) %>% 
+                    select(-c(data,dunntest))
+
+```
+Mon *et al.* @mon2020integrative reported that *S*. Enteritidis colonization of the 
 cecum of two-week old layer chickens was accompanied by changes in the bacterial 
 microbiota without any indication of disease. We were interested to know if the 
-cecal microbiota of broiler chickens was similarly affected by *Salmonella* and 
+cecal microbiota of broiler chickens was similarly affected by *Salmonella* challenge and 
 whether supplementary GOS in early life might disrupt these changes 
 and potentially affect *Salmonella* clearance. The cecal microbiota of the 
-experimental chickens was profiled using 16S rDNA amplicon sequencing to an adequate 
+experimental chickens was profiled using 16S rRNA amplicon sequencing to an adequate 
 sequencing depth (Figure S1). In agreement with Mon *et al.* @mon2020integrative, 
 we observed that the $\alpha$-diversity of the cecal community of chickens sustained 
-on the control feed was unchanged by SE-challenge (*p* $\geq$ `r round(unlist(alpha_stats$ctl) %>% min(), 3)`, Figure 3A). 
+on the control feed was unchanged by SE-challenge (*p* $\geq$ `r round(dunnflat %>% filter(Comparison=="ctl sal - ctl unc") %>% pull(P.adj) %>% min(),3)`, Figure 3A). 
 Also, in concordance with the report of Mon *et al.* @mon2020integrative, PCoA 
 analysis of the Bray-Curtis dissimilarity of the bacterial communities colonizing 
 the cecal pouches revealed changes in $\beta$-diversity that accompany *Salmonella* 
@@ -632,53 +271,14 @@ colonization (Figure 3B).
 Introduction of supplementary GOS to the diet of juvenile chickens leads to a more 
 profound change in the $\beta$-diversity of the cecal microbiota of SE-challenged 
 chickens relative to mock-challenged chickens from the jGOS group, and both the 
-SE- and mock-challenged chickens in the control-feed group, which 
-are particularly evident from 8 dpi onwards (Figure 3A). Correspondingly, the inverse 
+SE- and mock-challenged chickens in the control-feed group (Figure 3A). Changes in
+$\beta$-diversity are particularly evident from 8 dpi onwards. Correspondingly, the inverse 
 Simpson index of SE-challenged chickens in the jGOS group was lower than that of 
-all other treatment groups for 35 day-old birds (*p* $\leq$ `r round(unnest(alpha_stats[4,], cols = test) %>% filter(str_detect(Comparison, "gos sal")==TRUE) %>% pull(P.adj) %>% max(), 3)`; Figure 3A). 
+all other treatment groups for 35-day-old birds (*p* $\leq$ `r round(dunnflat %>% filter(Age=="35 (15)", str_detect(Comparison, "gos sal")==TRUE) %>% pull(P.adj) %>% max(),3)`; Figure 3A). 
 These data show that sustaining broiler chickens on a GOS supplemented diet up until 
-they are 24 days old effects the changes in the cecal microbiota caused by *Salmonella* 
+they are 24 days old affects changes in the cecal microbiota caused by *Salmonella* 
 challenge 10 days after the GOS was withdrawn (35 days old).
 
-```{r bc get, include=FALSE}
-aldex2_raw <- read_tsv(aldex2_path)
-ancombc_diet_raw <- read_tsv(ancombc_diet_path )
-ancombc_chal_raw <- read_tsv(ancombc_chal_path)
-
-
-# fmt data
-ancombc_diet_df <- ancombc_diet_raw %>% 
-                        mutate("-log10(ancombc.diet.padj)" = log10(q_dietgos))
-
-ancombc_chal_df <- 
-      ancombc_chal_raw %>% 
-                mutate("-log10(ancombc.challenge.padj)" = log10(q_challengeSE))
-
-ancombc_df <- left_join(x = ancombc_diet_df, y = ancombc_chal_df) %>% 
-                        mutate(OTU = str_extract(taxon, pattern = "Otu\\d{4}"))
-
-
-aldex2_df <- 
-  aldex2_raw %>% 
-      mutate("-log10(ALDEx2.challenge.padj)" = log10(`challengeSE:pval.holm`),
-             "-log10(ALDEx2.diet.padj)" = log10(`dietgos:pval.holm`))
-
-df <- left_join(x = ancombc_df,  y = aldex2_df) %>% 
-        rowwise() %>% 
-        mutate(id = taxon,
-               taxon = str_extract(id, pattern = "(?<=\\().+?(?=\\))") %>% str_remove(., "00"),
-                chal.max = max(`-log10(ancombc.challenge.padj)`,`-log10(ALDEx2.challenge.padj)`),
-               diet.max =  max(`-log10(ancombc.diet.padj)`,`-log10(ALDEx2.diet.padj)`),
-               chal_fill = case_when(
-                                    `challengeSE:pval.holm` >  0.05 | q_challengeSE >  0.05  ~ "p.adj > 0.05",
-                                    `challengeSE:pval.holm` < 0.5 && lfc_challengeSE < 0 ~ "Negative LFC",
-                                    `challengeSE:pval.holm` < 0.5 && lfc_challengeSE > 0 ~ "Positive LFC"),
-                diet_fill = case_when(
-                                    `dietgos:pval.holm` >  0.05 | q_dietgos > 0.05 ~ "p.adj > 0.05",
-                                    `dietgos:pval.holm` < 0.5 && lfc_dietgos < 0 ~ "Negative LFC",
-                                    `dietgos:pval.holm` < 0.5 && lfc_dietgos > 0 ~ "Positive LFC")
-               )
-```
 By comparison with other forms of analysis, Nearing *et al.* [@nearing2022daamethods] showed 
 that ALDEx2 [@fernandes2013anova; @fernandes2014unifying; @gloor2016displaying] 
 and ANCOM-based approaches [@lin2020analysis; @lin2022linear] delivered the most 
@@ -687,146 +287,52 @@ risk of false positives. Confidence that the OTUs identified by the procedure
 are not the result of bacterial DNA contamination of the kit or reagents was 
 evident from their absence or low abundance in the ‘kitome’ negative control 
 (Table S2). ALDEx2 and ANCOM-based packages were used here to determine 
-those OTUs associated with either SE-challenge or inclusion of supplementary GOS. 
-SE-challenge resulted in the increased abundance of `r df %>% filter(chal_fill=="Positive LFC") %>% nrow()` bacterial OTUs, and
-in particular Acidaminococcaceae_unclassified (Otu0007) (log~10~ fold-change = `r df %>% filter(id == "Acidaminococcaceae_unclassified (Otu0007)") %>% pull(lfc_challengeSE) %>% round(.,2)`, *p*-value < 0.005).
+those OTUs associated with either SE-challenge or inclusion of supplementary GOS,
+the greatest *p*-value returned by either package is reported here.  SE-challenge resulted in the increased abundance of `r df %>% filter(chal_fill=="Positive LFC") %>% nrow()` bacterial OTUs, and
+in particular `r df %>% filter(OTU=="Otu0007") %>% pull(id) %>% str_extract(string = ., pattern = "^\\S*")` (log~10~ fold-change = `r df %>% filter(id == "Acidaminococcaceae_unclassified (Otu0007)") %>% pull(lfc_challengeSE) %>% round(.,2)`, *p*-value < 0.005).
 The remaining OTUs that were positively associated with SE-challenge, but with smaller
 effect size were as follows: 
 *Megamonas* spp. (Otu0006; log~10~ fold-change = `r df %>% filter(id == "Megamonas (Otu0006)") %>% pull(lfc_challengeSE) %>% round(.,2)`, *p*-value < 0.005),
 *Bifidobacterium* spp. (Otu0015; log~10~ fold-change = `r df %>% filter(id == "Bifidobacterium (Otu0015)") %>% pull(lfc_challengeSE) %>% round(.,2)`, *p*-value < 0.005),
-*Bacteroides* spp. (Otu0027; log~10~ fold-change = `r df %>% filter(id == "Bacteroides (Otu0027)") %>% pull(lfc_challengeSE) %>% round(.,2)`, *p*-value < 0.005)
-and *Lactobacillus* spp. (Otu0061; log~10~ fold-change = `r df %>% filter(id == "Lactobacillus (Otu0061)") %>% pull(lfc_challengeSE) %>% round(.,2)`, *p*-value = `r df %>% filter(id == "Lactobacillus (Otu0061)") %>% pull('challengeSE:pval.holm', q_challengeSE) %>% max() %>% round(.,3)`) 
-(Figures 3C and 3D). A total of `r df %>% filter(chal_fill=="Negative LFC") %>% nrow()`
-OTUs reduced in abundance in response to SE-challenge 
-all of which belonged to the order Clostridiales: *Subdoligranulum* spp. 
-(Otu0013; log~10~ fold-change = `r df %>% filter(id == "Subdoligranulum (Otu0013)") %>% pull(lfc_challengeSE) %>% round(.,2)`, *p*-value = `r df %>% filter(id == "Subdoligranulum (Otu0013)") %>% pull('challengeSE:pval.holm', q_challengeSE) %>% max() %>% round(.,3)`),
-*Anaerotignum* spp. (Otu0059; log~10~ fold-change = `r df %>% filter(id == "Anaerotignum (Otu0059)") %>% pull(lfc_challengeSE) %>% round(.,2)`, *p*-value = `r df %>% filter(id == "Anaerotignum (Otu0059)") %>% pull('challengeSE:pval.holm', q_challengeSE) %>% max() %>% round(.,3)`),
-Lachnospiraceae_unclassified spp. (Otu0071; log~10~ fold-change = `r df %>% filter(id == "Lachnospiraceae_unclassified (Otu0071)") %>% pull(lfc_challengeSE) %>% round(.,2)`, *p*-value < 0.005).
+*Bacteroides* spp. (Otu0027; log~10~ fold-change = `r df %>% filter(id == "Bacteroides (Otu0027)") %>% pull(lfc_challengeSE) %>% round(.,2)`, *p*-value < 0.005), *Lactobacillus* spp. (Otu0061; log~10~ fold-change = `r df %>% filter(id == "Lactobacillus (Otu0061)") %>% pull(lfc_challengeSE) %>% round(.,2)`, *p*-value $\leq$ `r df %>% filter(id == "Lactobacillus (Otu0061)") %>% select('challengeSE:pval.padj', q_challengeSE) %>% pivot_longer(names_to = "daa", cols = c('challengeSE:pval.padj', q_challengeSE)) %>% pull(value) %>% max() %>% round(.,3)`) and
+*Olsenella* spp. (Otu0082; log~10~ fold-change = `r df %>% filter(id == "Olsenella (Otu0082)") %>% pull(lfc_challengeSE) %>% round(.,2)`, *p*-value $\leq$ `r df %>% filter(id == "Olsenella (Otu0082)") %>% select('challengeSE:pval.padj', q_challengeSE) %>% pivot_longer(names_to = "daa", cols = c('challengeSE:pval.padj', q_challengeSE)) %>% pull(value) %>% max() %>% round(.,3)`) 
+(Figures 3C). No OTUs showed significant reductions in abundance in response to SE-challenge.
 
-All of the taxa that identified as increasing in abundance in response to the 
-jGOS feeding regime belonged to the firmicutes phylum. *Megamonas* spp. 
-(Otu0006; log~10~ fold-change = `r df %>% filter(id == "Megamonas (Otu0006)") %>% pull(lfc_dietgos) %>% round(.,2)`; *p*-value = `r df %>% filter(id == "Megamonas (Otu0006)") %>% pull(q_dietgos, 'dietgos:pval.holm') %>% max() %>% round(.,3)`) and *Lactobacillus* spp. (Otu0061; log~10~ fold-change = `r df %>% filter(id == "Lactobacillus (Otu0061)") %>% pull(lfc_dietgos) %>% round(.,2)`; *p*-value = `r df %>% filter(id == "Lactobacillus (Otu0061)") %>% pull('dietgos:pval.holm',q_dietgos) %>% max() %>% round(., 3)`) 
+Across all time points the abundance of `r df %>% filter(diet_fill=="Positive LFC") %>% nrow()`
+taxa exhibited a positive log FC in response to the jGOS feeding regime: *Megamonas* spp. 
+(Otu0006; log~10~ fold-change = `r df %>% filter(id == "Megamonas (Otu0006)") %>% pull(lfc_dietgos) %>% round(.,2)`; *p*-value $\leq$ `r df %>% filter(id == "Megamonas (Otu0006)") %>% select(q_dietgos, 'dietgos:pval.padj') %>% pivot_longer(names_to = "daa", cols = c(q_dietgos,'dietgos:pval.padj')) %>% pull(value) %>% max() %>% round(.,3)`), *Lactobacillus* spp. (Otu0061; log~10~ fold-change = `r df %>% filter(id == "Lactobacillus (Otu0061)") %>% pull(lfc_dietgos) %>% round(.,2)`; *p*-value $\leq$ `r df %>% filter(id == "Lactobacillus (Otu0061)") %>% select(q_dietgos, 'dietgos:pval.padj') %>% pivot_longer(names_to = "daa", cols = c(q_dietgos,'dietgos:pval.padj')) %>% pull(value) %>% max() %>% round(., 3)`) and
+*Enterococcus* spp. (Otu0063; log~10~ fold-change = `r df %>% filter(id == "Enterococcus (Otu0063)") %>% pull(lfc_dietgos) %>% round(.,2)`; *p*-value $\leq$ `r df %>% filter(id == "Enterococcus (Otu0063)") %>% select(q_dietgos, 'dietgos:pval.padj') %>% pivot_longer(names_to = "daa", cols = c(q_dietgos,'dietgos:pval.padj')) %>% pull(value) %>% max() %>% round(., 3)`) (Figures 3D). Both  *Megamonas* spp. (Otu0006) and *Lactobacillus* spp. (Otu0061)
 were increased in chickens on the jGOS diet whilst also showing association with 
-SE-challenge (Figure 3E).  Ruminococcaceae_unclassified spp. (Otu0018; log~10~ fold-change = `r df %>% filter(id == "Ruminococcaceae_unclassified (Otu0018)") %>% pull(lfc_dietgos) %>% round(.,2)`; 
-*p*-value < 0.005) were reduced by the jGOS diet (Figure 3E). 
+SE-challenge.  Ruminococcaceae_unclassified spp. (Otu0018; log~10~ fold-change = `r df %>% filter(id == "Ruminococcaceae_unclassified (Otu0018)") %>% pull(lfc_dietgos) %>% round(.,2)`; 
+*p*-value $\leq$ `r df %>% filter(id == "Ruminococcaceae_unclassified (Otu0018)") %>% select(q_dietgos, 'dietgos:pval.padj') %>% pivot_longer(names_to = "daa", cols = c(q_dietgos,'dietgos:pval.padj')) %>% pull(value) %>% max() %>% round(., 3)`) was the sole taxa reduced by the jGOS diet (Figure 3D). 
 Blooms in the relative abundance of bacteria of the phylum Proteobacteria that
 accompany *Salmonella*-mediated inflammation in mouse infection models
 [@stecher2007salmonella] were not observed. Here no taxa classified as 
 Proteobacteria were observed to increase in abundance in response to 
-*Salmonella*-challenge in chickens (Figures 3C and 3D), possibly due to the 
+*Salmonella*-challenge in chickens (Figures 3C), possibly due to the 
 absence of gross inflammation.
 
 ```{r host:microbiota interaction, include=FALSE}
-# read in data
-# note that data originates from different tabs of same .xlsx doc
-raw_GE <- read_excel(path = GE_path, sheet = GE_sheet)
-
-# format data
-# make 'tidy'
-GE <- raw_GE %>% 
-              rename(group = '...1', 
-                    'IFN-gamma' = IFNG,
-                    'IL-1*Beta' = IL1B,
-                    "'IL-17A'" = IL17A,
-                    "'IL-22'" = IL22,
-                    "'IL-8L1'" = IL8L1,
-                    "'IL-8L2'" = IL8L2) %>%
-              pivot_longer(names_to = "gene", 
-                           values_to = "log10(2-^dCt)",
-                           -group) %>% 
-              separate(group, sep =  "_", remove = FALSE,
-                       into=c("Trial", "Feed", "Challenge", "Age", "Replicate"))
-
-
-# fix 'feed' and 'challenge' names
-GE <- GE %>%  
-          mutate(Feed = if_else(Feed == "ctl", 
-                                  true = "Ctl", 
-                                    false = if_else(Feed == "gos", 
-                                                      true = "jGOS", 
-                                                        false = "fail")),
-                 Challenge = if_else(Challenge == "sal", 
-                                      true = "SE", 
-                                       false = if_else(Challenge == "unc", 
-                                                         true = "Mock", 
-                                                          false = "fail"))
-                )
-
-
-# invert log10 expression values
-# drop NA values
-alDE <-  GE %>% 
-              mutate(cohort = paste0(Feed,"x",Challenge),
-                     `2-^dCt` = 10^`log10(2-^dCt)`) %>% 
-              drop_na(`2-^dCt`)
-
-
-# Observations were grouped as lists according to both feed x challenge group 
-# and age and the mean 2^-$\Delta$Ct^ levels for expression observed in 
-# mock-challenged birds was determined for groups sustained on either control or
-# jGOS-supplemented feed
-alDE_wide <- alDE %>% 
-                  pivot_wider(names_from = cohort,
-                              values_from = `2-^dCt`,
-                              -c(group,Replicate,Feed,Challenge,`log10(2-^dCt)`),
-                              values_fn = list) %>% 
-                  rowwise() %>% 
-                  mutate(m.CtlxMock = mean(unlist(CtlxMock)),
-                         m.jGOSxMock = mean(unlist(jGOSxMock)))
-
-
-# calculate fold-change relative to mean, include=TRUE}
-# The fold-change value was then calculated by dividing the 2^-$\Delta$Ct^ value 
-# observed in each bird by the mean 2^-$\Delta$Ct for mock-challenged birds on the 
-# same diet. 
-FC <- alDE_wide %>% 
-                mutate(FC.CtlxSE = list(CtlxSE/m.CtlxMock),
-                       FC.CtlxMock = list(CtlxMock/m.CtlxMock),
-                       FC.jGOSxSE = list(jGOSxSE/m.jGOSxMock),
-                       FC.jGOSxMock = list(jGOSxMock/m.jGOSxMock)
-                       )  %>% 
-                select(-c(CtlxMock, jGOSxMock))  
-
-FC.n <- FC %>% 
-              mutate(FC.CtlxSE.n = length(unlist(FC.CtlxSE)),
-                     FC.jGOSxSE.n = length(unlist(FC.jGOSxSE))) %>% 
-              group_by(gene) %>% 
-              count(FC.CtlxSE.n,FC.jGOSxSE.n)
-
-keep <- FC.n %>% filter(n == 4) %>% pull(gene) %>% unique()
-
-
-# keep only genes with n = 7  
-# get stats
-FC.stats <- 
-  FC %>% 
-      filter(gene %in% keep) %>% 
-      select(c(Age, gene, FC.CtlxSE, FC.jGOSxSE)) %>% 
-      group_by(Age, gene) %>% 
-      mutate(p_value = t.test(unlist(FC.CtlxSE), unlist(FC.jGOSxSE))$p.value,
-             t_value = t.test(unlist(FC.CtlxSE), unlist(FC.jGOSxSE))$statistic) %>%                      
-      group_by(Age) %>% 
-      mutate(p_adjust = p.adjust(p_value, method = "BH")) %>% 
-      rowwise() %>% 
-      mutate(FC.CtlxSE.n = length(unlist(FC.CtlxSE)),
-             FC.jGOSxSE.n = length(unlist(FC.jGOSxSE)),
-              sig = if_else(p_adjust < 0.001, "***", 
-                       if_else(p_adjust < 0.01, "**",
-                               if_else(p_adjust < 0.05, "*", "ns"))))
-
+# draw Supplementary Figure S2
+source("code/SF2_host.R", echo=TRUE)
 
 ```
 *Salmonella* colonization and clearance in chickens is linked to innate and
-adaptive immunological responses. Innate imune responses evident in, but not 
+adaptive immunological responses. Innate immune responses evident in, but not 
 exclusively, the ileum and ceca are reported to involve IL-17, IL-22, IL-8, 
 IFN-$\gamma$ and IL-1$\beta$ [@withanage2005cytokine; @crhanova2011immune; 
 @setta2012early]. We therefore profiled the expression of a panel of these and other immune 
 function-linked genes in cecal tissues to determine if the influence of GOS on the 
 microbiota was associated with changes in host immunity. The supplementation of juvenile feed with GOS differentiated the 
 host response of chickens to SE colonization in the cecum at 22 days old (2 dpi), 
-with up-regulation of IL-8L2 (*p* = `r FC.stats %>% filter(Age=="22", gene=="'IL-8L2'") %>% pull(p_adjust) %>% round(3)`) 
+with up-regulation of IL-8L2 (*p* = `r FC.stats %>% filter(Age=="22", str_detect(gene, pattern="8L2")) %>% pull(p_adjust) %>% round(3)`) 
 observed in SE-challenged birds on the control diet (Figure 3F), alongside up-regulation 
 of STAT3 (*p* = `r FC.stats %>% filter(Age==22, gene=="STAT3") %>% pull(p_adjust) %>% round(3)`) and TGIF1 (*p* = `r FC.stats %>% filter(Age==22, gene=="TGIF1") %>% pull(p_adjust) %>% round(3)`) (Figure S2). 
+
+```{r serum, include=FALSE}
+source("code/SF3_serum.R", echo=TRUE)
+
+```
 
 Increases in anti-*Salmonella* serum antibodies were detected by ELISA in response 
 to *Salmonella* challenge. *Salmonella* infected chickens exhibited an increase 
@@ -837,189 +343,63 @@ GOS supplemented diet *p* = 0.008), and increases for IgY and IgA at 15 dpi
 *Salmonella* infected chickens on the control and GOS supplemented diets for 
 either IgY or IgA at any of the sampling time points (Figure S3).
 
-```{r villus, include=FALSE}
-# read in histo data
-# format histo data
-villus_len_raw <- read_csv(vilus_raw_path) 
-
-villus_len <- villus_len_raw %>% 
-                    group_by(pen, Diet, Challenge, Age, Cohort) %>%
-                    summarise("VL" = mean(VL),
-                              n = n()) %>% 
-                    ungroup()
-                      
-
-
-villus_n <- villus_len %>% 
-              group_by(Age, Diet, Challenge) %>% 
-              summarise(n = n()) 
-
-
-```
 Chickens challenged at 20-days-old did not exhibit any change in behavior or clinical 
 signs of somnolence and/or diarrhea associated with salmonellosis in chickens, or 
 indeed exhibit any gross pathology post-mortem. Hematoxylin and eosin-stained histological 
 sections of ileal tissues revealed no significant differences in villus 
-height at any time point  (Figure 2C). The absence of overt disease upon
-*Salmonella*-colonization was also suggested by the continued growth of the birds 
-throughout the trial. However, we note that *Salmonella* could be detected 
+height at any time point (*p^adj^* $\geq$ `r min(villus_TukeyHSD$adj.p.value) %>% round(3)`, 
+Figure 2C).  However, we note that *Salmonella* could be detected 
 by enrichment in the spleens and livers of infected birds at 2, 4, 8 and 15 dpi 
 (Table S1) but with minimal mononuclear cell infiltration of the hepatic parenchyma 
 evident. The incidence of *Salmonella* recoverable from the liver 
-was reduced to `r enrich %>% filter(age==35,site=="Liver") %>% pull(pos) %>% unique()`
-birds from each group by 15 dpi (35 days-old) with no observable pathology. These 
-findings indicate that the involvement of early life exposure to dietary GOS
-in shortening the period during which *Salmonella* colonizes the cecal pouches is
-likely attributable to the influence of GOS on the cecal microbiota as changes 
-in the host innate immune response were only evident for the control diet at 
-2 dpi and there were no significant differences between the anti-*Salmonella*
-IgY and IgA responses for the birds on the control and GOS diets.
+was reduced to `r SE_enrich %>% filter(age==35,site=="Liver") %>% pull(pos) %>% unique()`
+birds from each group by 15 dpi (35 days-old) with no observable pathology. 
 
 ### Cecal SCFA concentrations are correlated with Acidaminococcaceae
 ```{r SCFA data, include=FALSE}
+# draw Figure 4
+source("code/F4_scfa.R", echo=TRUE)
 
-# read in scfa data
-scfa_xls <- read_excel(scfa_raw_path, 
-                       sheet = "late_scfa_-_results", 
-                       range = "A2:K114")
+# get p-values for inline reporting
+prop_28_jGOS_Salm <- scfa_pw %>% 
+                       filter(SCFA=="Propionate", age=="28", group1=="jGOS x SE") %>% 
+                       pull(p.value) %>% 
+                       max()
+ 
+prop_35_jGOS_Salm <- scfa_pw %>% 
+                       filter(SCFA=="Propionate", age=="35", group1=="jGOS x SE") %>% 
+                       pull(p.value) %>% 
+                       max()
+ 
+prop_28_MOCKvsSE <- scfa_pw %>% 
+                       filter(SCFA=="Propionate", age=="28", 
+                              group2=="ctl x Mock", group1 =="ctl x SE") %>% 
+                       pull(p.value)
+ 
+prop_35_MOCKvsSE <- scfa_pw %>% 
+                       filter(SCFA=="Propionate", age=="35", 
+                              group2=="ctl x Mock", group1=="ctl x SE") %>% 
+                       pull(p.value)
+ 
+prop_28_ctlsalmVSjgosmock <- scfa_pw %>% 
+                                 filter(SCFA=="Propionate", age=="28", 
+                                        group1=="jGOS x Mock", group2=="ctl x SE") %>% 
+                                 pull(p.value)
+ 
+valerate_35_MOCKvsSE <- scfa_pw %>% 
+                               filter(SCFA=="Valerate", age=="35", 
+                                      group1=="ctl x SE", group2 == "ctl x Mock") %>% 
+                               pull(p.value)
 
-# fix SCFA formatting and names
-# covert isobutyric acid from ppb to ppm
-# fix SCFA formatting and names
-# covert isobutyric acid from ppb to ppm
-scfa_raw <- scfa_xls %>% 
-  rename(all_of(scfa_names)) %>% 
-  slice(2:n()) %>% 
-  select(-`Standard curve`) %>% 
-  mutate(trial = str_sub(`Sample ID`,1,3),
-         exposure = case_when(trial == "t42" ~ "l", 
-                              trial == "t40" ~ "e"),
-         cohort = case_when(str_sub(`Sample ID`, 5,5) == "1" ~ "ctl x Mock",
-                            str_sub(`Sample ID`, 5,5) == "2" ~ "jGOS x Mock",
-                            str_sub(`Sample ID`, 5,5) == "3" ~ "ctl x SE",
-                            str_sub(`Sample ID`, 5,5) == "4" ~ "jGOS x SE"),
-         treatment = case_when(str_sub(`Sample ID`, 5,5) == "1" ~ "ctl_unc",
-                               str_sub(`Sample ID`, 5,5) == "2" ~ "gos_unc",
-                               str_sub(`Sample ID`, 5,5) == "3" ~ "ctl_sal",
-                               str_sub(`Sample ID`, 5,5) == "4" ~ "gos_sal"),
-         age = case_when(trial == "t40" & str_sub(`Sample ID`, 7,7) == "0" ~ "8",
-                         trial == "t40" & str_sub(`Sample ID`, 7,7) == "1" ~ "15",
-                         trial == "t40" & str_sub(`Sample ID`, 7,7) == "2" ~ "22",
-                         trial == "t40" & str_sub(`Sample ID`, 7,7) == "3" ~ "28",
-                         trial == "t40" & str_sub(`Sample ID`, 7,7) == "4" ~ "35",
-                         trial == "t42" ~ str_sub(`Sample ID`, 7,8)),
-         replicate = str_sub(`Sample ID`, -1L,-1L),
-         Group = paste0(exposure,"_",treatment,"_",age,"_",replicate)
-  ) %>% 
-  mutate_at(vars(all_of(c("Acetic acid", "Propionate", "Isobutyric acid", 
-                          "Butyrate", "2-Methyl butyric acid",
-                          "Isovaleric acid", "Valerate", "Hexanoic acid", 
-                          "Lactic acid"))), as.numeric) %>% 
-  mutate("Isobutyric acid" = `Isobutyric acid`/1000)
-
-# clean data
-# drop early exposure communities
-# convert to mM
-scfa_wide <- scfa_raw %>% 
-                drop_na() %>% 
-                mutate(`Acetic acid` = ((`Acetic acid`/1000)/acetic_MolWt)*1000,
-                       Propionate = ((Propionate/1000)/propionate_MolWt)*1000,
-                      `Isobutyric acid` = ((`Isobutyric acid`/1000)/isobutyric_MolWt)*1000,
-                      `Butyrate` = ((`Butyrate`/1000)/butyrate_MolWt)*1000,
-                      `2-Methyl butyric acid` = ((`2-Methyl butyric acid`/1000)/methylbutyric_MolWt)*1000,
-                      `Isovaleric acid` = ((`Isovaleric acid`/1000)/isovaleric_MolWt)*1000,
-                      `Valerate` = ((`Valerate`/1000)/valerate_MolWt)*1000,
-                      `Hexanoic acid` = ((`Hexanoic acid`/1000)/hexanoic_MolWt)*1000,
-                      `Lactic acid` = ((`Lactic acid`/1000)/lactic_MolWt)*1000)
-
-######### conc ################################################################
-
-scfa_long <- scfa_wide %>% 
-                          select(-c(`Sample ID`,replicate,trial,exposure,treatment)) %>% 
-                          pivot_longer(-c(cohort, age, Group), 
-                                       names_to = "SCFA", 
-                                       values_to = "Concentration") 
-
-
-kw <- scfa_long %>% 
-                  select(-Group) %>% 
-                  group_by(age, SCFA) %>% 
-                  nest(data = c(cohort, Concentration)) %>% 
-                  mutate(kruskal_raw = map(data, ~ kruskal.test(.x$Concentration, .x$cohort)),
-                         kruskal = map(kruskal_raw, broom::tidy)) %>% 
-                  unnest(kruskal)
-
-
-pw <- kw %>% 
-  filter(`p.value` < 0.05) %>% 
-  select(c(age, SCFA, data)) %>%  
-  mutate(wilcox_raw = map(data, ~ pairwise.wilcox.test(.x$Concentration, g = .x$cohort, 
-                                                       p.adjust.method = "BH")),
-         wilcox = map(wilcox_raw, tidy)) %>% 
-  unnest(cols = wilcox) %>% 
-  filter(`p.value` < 0.05)
-
-
-butyrate_28_jGOS_SE <- pw %>% 
-                            filter(SCFA=="Butyrate") %>% 
-                            unnest(data) %>% 
-                            group_by(cohort) %>% 
-                            summarise(mean_conc = mean(Concentration)) %>% 
-                            filter(cohort == "jGOS x SE") %>% 
-                            pull(mean_conc)
-
-butyrate_28_Ctl_Mock <- pw %>% 
-                            filter(SCFA=="Butyrate") %>% 
-                            unnest(data) %>% 
-                            group_by(cohort) %>% 
-                            summarise(mean_conc = mean(Concentration)) %>% 
-                            filter(cohort == "ctl x Mock") %>% 
-                            pull(mean_conc)
-
-prop_28_jGOS_Salm <- pw %>% 
-                      filter(SCFA=="Propionate", age=="28", group1=="jGOS x SE") %>% 
-                      pull(p.value) %>% 
-                      max()
-
-prop_35_jGOS_Salm <- pw %>% 
-                      filter(SCFA=="Propionate", age=="35", group1=="jGOS x SE") %>% 
-                      pull(p.value) %>% 
-                      max()
-
-prop_28_MOCKvsSE <- pw %>% 
-                      filter(SCFA=="Propionate", age=="28", 
-                             group2=="ctl x Mock", group1 =="ctl x SE") %>% 
-                      pull(p.value)
-
-prop_35_MOCKvsSE <- pw %>% 
-                      filter(SCFA=="Propionate", age=="35", 
-                             group2=="ctl x Mock", group1=="ctl x SE") %>% 
-                      pull(p.value)
-
-prop_28_ctlsalmVSjgosmock <- pw %>% 
-                                filter(SCFA=="Propionate", age=="28", 
-                                       group1=="jGOS x Mock", group2=="ctl x SE") %>% 
-                                pull(p.value)
-
-valerate_35_MOCKvsSE <- pw %>% 
-                              filter(SCFA=="Valerate", age=="35", 
-                                     group1=="ctl x SE", group2 == "ctl x Mock") %>% 
-                              pull(p.value)
-
-prop_35_Ctl_Salm <- pw %>% 
-                          filter(SCFA=="Propionate", age=="35", 
-                                 group1=="jGOS x Mock",group2=="ctl x SE") %>% 
-                          pull(p.value)
-
-valerate_28_jGOS_Salm <- pw %>% 
-                            filter(SCFA=="Valerate", age=="28", group1=="jGOS x SE") %>% 
-                            pull(p.value) %>% 
-                            max()
-
-valerate_35_jGOS_Salm <- pw %>% 
-                            filter(SCFA=="Valerate", age=="35", group1=="jGOS x SE") %>% 
-                            pull(p.value) %>% 
-                            max()
+ valerate_28_jGOS_Salm <- scfa_pw %>% 
+                             filter(SCFA=="Valerate", age=="28", group1=="jGOS x SE") %>% 
+                             pull(p.value) %>% 
+                             max()
+ 
+ valerate_35_jGOS_Salm <- scfa_pw %>% 
+                             filter(SCFA=="Valerate", age=="35", group1=="jGOS x SE") %>% 
+                             pull(p.value) %>% 
+                             max()
 
 ```
 Short chain fatty acids (SCFA) are produced in the gut through the microbial breakdown 
@@ -1034,13 +414,13 @@ early-life and/or *Salmonella* challenge of broiler chickens. Concentrations of
 propionate and 8 other SCFAs (acetic acid, isobutyric acid, butyrate, 2-methyl 
 butyric acid, isovaleric acid, valerate, hexanoic acid and lactic acid) were 
 measured in luminal cecal contents, but significant differences in SCFA levels 
-between cohorts were only evident for propionate, butyrate and valerate (Figure 4A). 
+between cohorts were only evident for propionate, butyrate and valerate. 
 A similar trend was noted for each of these SCFAs with greater concentrations 
 detected in *Salmonella*-challenged chickens, and most profoundly in 
 *Salmonella*-challenged chickens in the jGOS group. At 8 dpi (28 days-old) 
 butyrate levels in SE-challenged, jGOS group chickens (mean `r round(scfa_long %>% filter(SCFA=="Butyrate", age=="28", cohort=="jGOS x SE") %>% pull(Concentration) %>% mean(),1)` 
 mM) were greater than unchallenged chickens raised on control feed (mean `r round(scfa_long %>% filter(SCFA=="Butyrate", age=="28", cohort=="ctl x Mock") %>% pull(Concentration) %>% mean(),1)` 
-mM; *p* = `r pw %>% filter(SCFA=="Butyrate", age =="28") %>% pull(p.value) %>% round(3)`; 
+mM; *p* = `r scfa_pw %>% filter(SCFA=="Butyrate", age =="28") %>% pull(p.value) %>% round(3)`; 
 Figure 4A), but at this time all groups were better differentiated by propionate 
 and valerate concentrations which were significantly higher in SE-challenged 
 chickens in the jGOS group than any other group (propionate 
@@ -1057,134 +437,26 @@ and *p* $\leq$ `r round(prop_35_MOCKvsSE,3)` respectively), and the levels of
 valerate were greater in SE-challenged chickens on the control diet than 
 mock-challenged chickens on the control diet at 35 days (*p* $\leq$ `r round(valerate_35_MOCKvsSE,3)`). 
 In addition, propionate was detected at greater levels in SE-challenged chickens 
-sustained on the control diet than unchallenged jGOS chickens at 28 days 
-(*p* = `r round(prop_28_ctlsalmVSjgosmock,3)`) establishing a link between SE challenge
-and cecal propionate that is augmented by, but not dependent on, juvenile exposure 
-to supplementary GOS. 
+sustained on the control diet than mock-challenged jGOS chickens at 28 days 
+(*p* = `r round(prop_28_ctlsalmVSjgosmock,3)`).
 
-```{r bc vs SCFA concentration, include=FALSE}
-
-# read in bias corrected taxon abundances
-bcabund_raw <- read_tsv(bcabund_path)
-
-# format reads x taxa
-bcabund <- bcabund_raw %>% 
-                    pivot_wider(names_from = taxon,
-                                values_from = `log(bc-abundance)`)
-
-# bind analytic data together (microbiota & metabolome)
-bcabund_scfa <- left_join(
-                      scfa_wide %>% select(cohort, age, replicate, Group, Propionate, Butyrate, Valerate),
-                      bcabund %>% select(-c(pen, cohort, age)),
-                      by = c("Group"="community")) %>% 
-            pivot_longer(cols = c(Propionate, Butyrate, Valerate), 
-                         names_to = "SCFA", 
-                         values_to = "ppm") %>% 
-            pivot_longer(-c(cohort, age, replicate, Group, SCFA, ppm), 
-                         names_to = "taxon", 
-                         values_to = "bc") 
-
-abund_scfa_nest <- bcabund_scfa %>% 
-                              group_nest(age, SCFA, taxon)
-
-
-
-abund_corr <- abund_scfa_nest %>% 
-  mutate(test = map(data, ~ cor.test(.x$bc, .x$ppm, method = "spearman")), 
-         tidied = map(test, tidy)      ) %>% 
-  unnest(tidied, .drop = TRUE) %>% 
-  mutate(estimate_size = abs(estimate)   ) %>% 
-  group_by(age,SCFA) %>% 
-  mutate(q = p.adjust(`p.value`, method='BH'),
-         estimate_fill = if_else(q <= 0.05, estimate, 0))
-
-
-```
 ```{r OTU vs SCFA, include=FALSE}
+# draw Supplementary Figure S4
+source("code/SF4_scfa_OTU.R", echo=TRUE)
 
-# drop columns with min reads cutoff
-abund.shared <- OTU_raw %>% 
-                    select(where(~ any(.x >= min.depth)))
-
-
-# drop OTUs present in 10% communities 
-prev.shared <- abund.shared %>% 
-                            select(which(colSums(. != 0)>=nrow(.)*min.prevalence))
-
-
-prev.shared.taxon <- prev.shared %>% 
-                          select(-numOtus) %>% 
-                          pivot_longer(cols = -Group,
-                                       names_to = "OTU",
-                                       values_to = "reads") %>% 
-                          pivot_wider(names_from = Group,
-                                      values_from = reads) %>% 
-                          left_join(tax) %>% 
-                          bind_rows(summarise(.,
-                                          across(where(is.numeric), sum),
-                                          across(where(is.character), ~"Total")))
-
-# make data 'tidy'
-prev.shared.taxon.long <- prev.shared.taxon %>% 
-                  pivot_longer(cols = where(is.double),
-                               names_to = "Group",
-                               values_to = "reads") 
-
-
-# format reads x taxa
-abund.OTU <- prev.shared.taxon.long %>% 
-                      select(-c(OTU, Kingdom, Phyla, Class, Order, Family, Genus)) %>% 
-                      pivot_wider(names_from = id,
-                                  values_from = reads) %>% 
-                      rowwise() %>% 
-                      mutate(across(where(is.numeric),  ~100*(. / Total))) %>% 
-                      select(-Total)
-
-# bind analytic data together (microbiota & metabolome)
-### I need to look into missing values/replicate data ###
-### such as l_ctl_unc_35_3 ???  ###
-OTU_scfa <- left_join(scfa_wide %>% select(cohort, age, replicate, Group, 
-                                          Propionate, Butyrate, Valerate), 
-                      abund.OTU, by = "Group") %>% 
-                pivot_longer(cols = c(Propionate, Butyrate, Valerate), 
-                             names_to = "SCFA", 
-                             values_to = "ppm") %>% 
-                pivot_longer(-c(cohort, age, replicate, Group, SCFA, ppm), 
-                             names_to = "OTU", 
-                             values_to = "RA") 
-
-
-
-
-OTU_scfa_nest <- OTU_scfa %>% 
-                        group_nest(age, SCFA, OTU)
-
-
-OTU_corr <- OTU_scfa_nest %>% 
-  mutate(test = map(data, ~ cor.test(.x$RA, .x$ppm, method = "spearman")), 
-         tidied = map(test, tidy)      ) %>% 
-  unnest(tidied, .drop = TRUE) %>% 
-  mutate(estimate_size = abs(estimate)   ) %>% 
-  group_by(age,SCFA) %>% 
-  mutate(q = p.adjust(`p.value`, method='BH'),
-         estimate_fill = if_else(q <= 0.05, estimate, 0),
-         order = str_extract(OTU, "\\d+") %>% 
-                      str_remove("^0+") %>% 
-                      as.numeric())
-
-# get agreement
-corob <- abund_corr |> 
-              select(c(age, SCFA, taxon, estimate, q)) |> 
-              left_join(OTU_corr |> select(c(age, SCFA, OTU, estimate, q)), 
-                        suffix = c("_bc", "_ra"),
-                        by = c("taxon" = "OTU", "SCFA", "age"), 
-                        keep = TRUE
-                        ) |> 
-              mutate(estimate_ra = if_else(estimate_ra < 0, 0, 1),
-                     estimate_bc = if_else(estimate_bc < 0, 0, 1)) |> 
-              filter(q_ra <= 0.05, 
-                     q_bc <= 0.05,
-                     estimate_ra == estimate_bc) 
+# get OTUs in agreement
+ corob <- abund_corr |> 
+               select(c(age, SCFA, taxon, estimate, q)) |> 
+               left_join(OTU_corr |> select(c(age, SCFA, OTU, estimate, q)), 
+                         suffix = c("_bc", "_ra"),
+                         by = c("taxon" = "OTU", "SCFA", "age"), 
+                         keep = TRUE
+                         ) |> 
+               mutate(estimate_ra = if_else(estimate_ra < 0, 0, 1),
+                      estimate_bc = if_else(estimate_bc < 0, 0, 1)) |> 
+               filter(q_ra <= 0.05, 
+                      q_bc <= 0.05,
+                      estimate_ra == estimate_bc) 
 
 ```
 A correlation analysis was undertaken on the observations of the levels of propionate, 
@@ -1195,42 +467,36 @@ ANCOM-BC package and the association between these abundances and the
 concentration of each SCFA was calculated by Spearman's rank coefficient ($\rho$). 
 Although significant negative correlations were plentiful, only `r abund_corr |> filter(q <= 0.05, estimate > 0) |> pull(taxon) |> n_distinct()` taxa had significant positive correlations 
 with either butyrate, propionate or valerate (Figure 4B). 
-Acidaminococcaceae_unclassified (OTU0007) was correlated with propionate at 28 ($\rho$ = `r abund_corr %>% filter(taxon == "Acidaminococcaceae_unclassified (Otu0007)", age==28, SCFA == "Propionate") %>% pull(estimate) %>% round(.,3)`, *p* = `r abund_corr %>% filter(taxon == "Acidaminococcaceae_unclassified (Otu0007)", age=="28", SCFA == "Propionate") %>% pull(q) %>% round(.,3)`) and 35 days ($\rho$ = `r abund_corr %>% filter(taxon == "Acidaminococcaceae_unclassified (Otu0007)", age=="35", SCFA == "Propionate") %>% pull(estimate) %>% round(.,3)`, *p* = `r abund_corr %>% filter(taxon == "Acidaminococcaceae_unclassified (Otu0007)", age == "35", SCFA == "Propionate") %>% pull(q) %>% round(.,3)`). Acidaminococcaceae_unclassified (OTU0007) 
-was also positively correlated with valerate at 35 days ($\rho$ = `r abund_corr %>% filter(taxon == "Acidaminococcaceae_unclassified (Otu0007)", age=="35", SCFA == "Valerate") %>% pull(estimate) %>% round(.,3)`, *p* = `r abund_corr %>% filter(taxon == "Acidaminococcaceae_unclassified (Otu0007)", age=="35", SCFA == "Valerate") %>% pull(q) %>% round(.,3)`). Ruminococcacea_unclassified spp. (OTU0047)
-was positively correlated with butyrate at 28 days ($\rho$ = `r abund_corr %>% filter(taxon == "Ruminococcaceae_unclassified (Otu0047)", age == 28, SCFA == "Butyrate") %>% pull(estimate) %>% round(.,3)`, *p^* = `r abund_corr %>% filter(taxon == "Ruminococcaceae_unclassified (Otu0047)", age == 28, SCFA == "Butyrate") %>% pull(q) %>% round(.,3)`). 
-A single OTU, Lachnospiraceae_unclassified (OTU0002), was negatively correlated 
-with butyrate at 8 dpi ($\rho$ = `r abund_corr %>% filter(taxon == "Lachnospiraceae_unclassified (Otu0002)", age==28, SCFA == "Butyrate") %>% pull(estimate) %>% round(.,3)`, *p* = `r abund_corr %>% filter(taxon == "Lachnospiraceae_unclassified (Otu0002)", age==28, SCFA == "Butyrate") %>% pull(q) %>% round(.,3)`). 
-Several OTUs were negatively correlated with propionate at 2, 8 and 15 dpi; the 
-majority of which belong to the Lachnospiraceae, Ruminococcaceae or Lactobacillaceae 
-families. A total of 8 OTUs were negatively correlated with valerate at 35
-days old (15 dpi), but at no other timepoint, with 7 of these OTUs also negatively 
-associated with propionate. Acidaminococcaceae_unclassified (Otu0007) was positively correlated 
-with propionate and valerate concentration and was increased in SE-challenged birds; 
-whereas *Anaerotignum* spp. (Otu0059) and Lachnospiraceae_unclassified (Otu0071)
-were negatively correlated with propionate and valerate and were reduced in 
-SE-challenged chickens. No overlap was observed between propionate, butyrate and 
+Acidaminococcaceae_unclassified (OTU0007) was correlated with propionate at 28 (rho ($\rho$) = `r abund_corr %>% filter(taxon == "Acidaminococcaceae_unclassified (Otu0007)", age=="28 (8)" , SCFA == "Propionate") %>% pull(estimate) %>% round(.,3)`, *p* = `r abund_corr %>% filter(taxon == "Acidaminococcaceae_unclassified (Otu0007)", age=="28 (8)", SCFA == "Propionate") %>% pull(q) %>% round(.,3)`) and 35 days (rho ($\rho$) = `r abund_corr %>% filter(taxon == "Acidaminococcaceae_unclassified (Otu0007)", age=="35 (15)", SCFA == "Propionate") %>% pull(estimate) %>% round(.,3)`, *p* = `r abund_corr %>% filter(taxon == "Acidaminococcaceae_unclassified (Otu0007)", age == "35 (15)", SCFA == "Propionate") %>% pull(q) %>% round(.,3)`). Acidaminococcaceae_unclassified (OTU0007) 
+was also positively correlated with valerate at 35 days (rho ($\rho$) = `r abund_corr %>% filter(taxon == "Acidaminococcaceae_unclassified (Otu0007)", age=="35 (15)", SCFA == "Valerate") %>% pull(estimate) %>% round(.,3)`, *p* = `r abund_corr %>% filter(taxon == "Acidaminococcaceae_unclassified (Otu0007)", age=="35 (15)", SCFA == "Valerate") %>% pull(q) %>% round(.,3)`). Ruminococcacea_unclassified spp. (OTU0047)
+was positively correlated with butyrate at 28 days (rho ($\rho$) = `r abund_corr %>% filter(taxon == "Ruminococcaceae_unclassified (Otu0047)", age == "28 (8)", SCFA == "Butyrate") %>% pull(estimate) %>% round(.,3)`, *p* = `r abund_corr %>% filter(taxon == "Ruminococcaceae_unclassified (Otu0047)", age == "28 (8)", SCFA == "Butyrate") %>% pull(q) %>% round(.,3)`). 
+
+Two OTUs were negatively correlated with propionate at 15 dpi: *Anaerotignum* (Otu0059) (rho ($\rho$) = `r abund_corr %>% filter(taxon == "Anaerotignum (Otu0059)", age == "35 (15)", SCFA == "Propionate") %>% pull(estimate) %>% round(.,3)`, *p* = `r abund_corr %>% filter(taxon == "Anaerotignum (Otu0059)", age == "35 (15)", SCFA == "Propionate") %>% pull(q) %>% round(.,3)`) and  Lachnospiraceae_unclassified (Otu0071) (rho ($\rho$) = `r abund_corr %>% filter(taxon == "Lachnospiraceae_unclassified (Otu0071)", age == "35 (15)", SCFA == "Propionate") %>% pull(estimate) %>% round(.,3)`, *p* = `r abund_corr %>% filter(taxon == "Lachnospiraceae_unclassified (Otu0071)", age == "35 (15)", SCFA == "Propionate") %>% pull(q) %>% round(.,3)`); both of which belong to the Lachnospiraceae family. *Anaerotignum* spp. (Otu0059) was also
+negatively correlated with valerate at 2 dpi (rho ($\rho$) = `r abund_corr %>% filter(taxon == "Anaerotignum (Otu0059)", age == "22 (2)", SCFA == "Valerate") %>% pull(estimate) %>% round(.,3)`, *p* = `r abund_corr %>% filter(taxon == "Anaerotignum (Otu0059)", age == "22 (2)", SCFA == "Valerate") %>% pull(q) %>% round(.,3)`)
+as was Bacillales_unclassified (Otu0060) (rho ($\rho$) = `r abund_corr %>% filter(taxon == "Bacillales_unclassified (Otu0060)", age == "22 (2)", SCFA == "Valerate") %>% pull(estimate) %>% round(.,3)`, *p* = `r abund_corr %>% filter(taxon == "Bacillales_unclassified (Otu0060)", age == "22 (2)", SCFA == "Valerate") %>% pull(q) %>% round(.,3)`).
+Acidaminococcaceae_unclassified (Otu0007) was positively correlated 
+with propionate and valerate concentration and was increased in SE-challenged birds. No overlap was observed between propionate, butyrate and 
 valerate correlated OTUs and taxa associated with the jGOS group.
 
 Correlation analysis was also performed using OTU relative abundance (%) in place of 
 bias-corrected OTU abundances (Figure S4). This approach identified 
 `r OTU_corr |> filter(q <= 0.05) |> pull(OTU) |> n_distinct()` OTUs with 
-significant associations with either butyrate, propionate or valerate, compared 
-with only `r abund_corr |> filter(q <= 0.05) |> pull(taxon) |> n_distinct()` 
+significant positive or negative associations with either butyrate, propionate or valerate, compared 
+with a total of `r abund_corr |> filter(q <= 0.05) |> pull(taxon) |> n_distinct()` 
 OTUs identified using the previous approach. However, there was agreement 
 between the approaches with `r n_distinct(corob$taxon)` OTUs identified as 
-having similar significant correlations. Of the `r df |> filter(chal_fill == "Positive LFC") |> pull(taxon) |> n_distinct()` taxa previously found to be 
-positively associated with SE-challenge, all were positively correlated with 
-propionate or valerate at some stage. Whereas, of the 3 taxa reduced in 
-SE-challenged birds, two were negatively correlated with propionate or valerate. 
-Similarly, of the two taxa increased in the jGOS group, *Megamonas* spp. (Otu0006) 
-and *Lactobacillus* spp. (Otu0061) were positively 
-correlated with propionate and valerate.
+having similar significant correlations. Of the `r df |> filter(chal_fill == "Positive LFC") |> pull(taxon) |> n_distinct()` taxa found to be 
+positively associated with SE-challenge using the ALDEx2 and ANCOM-based approaches, all were positively correlated with 
+propionate or valerate at some stage. Similarly, of the `r df |> filter(diet_fill == "Positive LFC") |> pull(taxon) |> n_distinct()` taxa increased in the jGOS group, *Megamonas* spp. (Otu0006) 
+and *Lactobacillus* spp. (Otu0061) were positively correlated with propionate and valerate.
+However, `r df |> filter(diet_fill == "Negative LFC") |> pull(id)` that was
+negatively associated with the jGOS diet showed no correlation with either butyrate, propionate or valerate.
 
 ```{r discussion, include=FALSE}
 propionate_28_mM <- scfa_long %>% 
-                       filter(SCFA=="Propionate",age==28) %>% 
-                       group_by(cohort) %>% 
-                       summarise(mean_mM = mean(Concentration)) 
+                        filter(SCFA=="Propionate",age==28) %>% 
+                        group_by(cohort) %>% 
+                        summarise(mean_mM = mean(Concentration)) 
 
 error <- read_tsv(error_path) %>% 
                                  mutate(sum_err = Sequences*Errors) 
@@ -1260,23 +526,26 @@ novel microbiota. Here we report that supplementing the feed of juvenile chicken
 with GOS up until the birds are 24-days-old shortens the time taken for clearance 
 of *S.* Enteritidis infection following an oral challenge at 20 days. 
 
-Oral gavage with *Salmonella* Enteritidis did not result in intestinal disease 
-but did generate increased concentrations of cecal propionate at 8 and 15 dpi in 
+Oral gavage with *Salmonella* Enteritidis did not result in overt intestinal disease,
+as characterized by intestinal inflammation or reduced growth performance, but 
+did generate increased concentrations of cecal propionate at 8 and 15 dpi in 
 chickens raised on either control or jGOS diets relative to diet-matched 
 mock-challenged controls. However, at 8 dpi the levels of propionate detected in 
 *Salmonella*-challenged chickens were greater in chickens in the jGOS group 
-(`r propionate_28_mM %>% filter(cohort=="jGOS x SE") %>% pull(mean_mM) %>% round(2)` mM) relative to the chickens on the 
-control diet (`r propionate_28_mM %>% filter(cohort=="ctl x SE") %>% pull(mean_mM) %>% round(2)` mM). As supplementary GOS was 
+(`r propionate_28_mM %>% filter(cohort=="jGOS x SE") %>% pull(mean_mM) %>% round(2)` mM) 
+relative to *Salmonella*-challenged chickens on the control diet (`r propionate_28_mM %>% filter(cohort=="ctl x SE") %>% pull(mean_mM) %>% round(2)` mM); establishing a link between SE challenge
+and cecal propionate that is augmented by, but not dependent on, juvenile exposure 
+to supplementary GOS. As supplementary GOS was 
 absent from the diet from 24 days old (4 dpi) this is likely a legacy effect of 
-the prebiotic. Culture-based experiments have ascertained that 15 mM propionate 
+consuming GOS. Culture-based experiments have ascertained that 15 mM propionate 
 at pH 6.5 will inhibit the growth of *S.* Typhimurium [@barnes1979factors]; 
 whereas 25 mM propionate at pH 6 is required to inhibit the growth of 
-*S.* Enteritidis *in vitro* [@vanImmerseel2003invasion]. Moreover, 3.13 mM 
+*S.* Enteritidis [@vanImmerseel2003invasion]. Moreover, 3.13 mM 
 propionate increases *S.* Typhimurium lag time and at 6.25 mM propionate will 
 decrease the growth rate of *S.* Typhimurium  [@jacobson2018propionate]. 
 Although the concentrations of propionate we measured are lower in the cecal 
 contents than required *in vitro*, it is possible that the inimical effect of 
-propionate is heightened at the pH of the ceca or the niche occupied by 
+propionate is heightened at the pH of the ceca or the niches occupied by 
 *Salmonella*. 
 
 *S*. Enteritidis P125109 has an intact operon that can in principle breakdown propionate via the 
@@ -1297,7 +566,7 @@ in the jGOS group and therefore the direct action of propionate on *Salmonella*
 seems more likely. The mechanism by which propionate inhibits *Salmonella* growth 
 has yet to be established, but the predominant hypothesis is that dissociated propionate 
 diffuses across the cell membrane and acidifies the cytoplasm [@ricke2003perspectives; @jacobson2018propionate; @sorbara2019inhibiting].
-Whereas the alternate, and possibly complementary hypothesis, is that at 10 mM 
+The alternate, and possibly complementary hypothesis, is that at 10 mM 
 propionate represses *S.* Typhimurium invasion through post-translational control 
 of HilD [@hung2013HilD]. 
 
@@ -1318,11 +587,11 @@ study of gastrointestinal and extraintestinal pathovars of *Salmonella* revealed
 the extraintestinal pathovars to have degraded the regulators for anaerobic 
 processes including *prpR* - the propionate catabolism operon regulatory protein 
 [@nuccio2014comparative]. The authors conclude the retention of these regulatory 
-networks provide the gastrointestinal pathovars the opportunity to outcompete 
+networks provides the gastrointestinal pathovars the opportunity to outcompete 
 other microorganisms present in the lumen of the inflamed gut. However, the 
 involvement of propionate in infection is likely complex since *Salmonella*
 Gallinarum is an extraintestinal pathovar (the causative agent of systemic fowl 
-typhoid in chickens) that retains the *prpR* gene, but does not trigger a 
+typhoid in chickens) that retains the *prpR* gene but does not trigger a 
 pro-inflammatory response in the gut, and is reported to be less likely to cause 
 disease in chickens sustained on feed supplemented with propionate 
 [@defreitasneto2013flagellated; @kaiser2000differential; @thomson2008comparative; @berchieri1996reduction]. 
@@ -1334,9 +603,11 @@ especially in the presence of GOS. There are few reports of the origin of
 microbiota-generated valerate in the literature, nor of its effect on the host. 
 However, it has been shown to have anti-*Clostridium difficile* activity in mice 
 [@mcdonald2018inhibiting]. No OTUs from the *Clostridium* cluster XI were found 
-to discriminate between cohorts in this study, but taxa within the broader 
-grouping of the class Clostridia were negatively correlated with both propionate 
-and valerate concentration. We observed that *Salmonella* was more effectively 
+to discriminate between cohorts in this study, but *Anaerotignum* spp. (Otu0059) 
+which falls within the broader grouping of the class Clostridia were negatively 
+correlated with both propionate and valerate concentration.  
+
+We observed that *Salmonella* was more effectively 
 cleared from the cecal pouches in chickens from the jGOS group, but that the 
 organism persisted in the liver and spleen, and potentially other extra-intestinal 
 tissues. Selective clearance of intestinal *Salmonella* with GOS, possibly in 
@@ -1348,34 +619,36 @@ Amplicon profiling indicated that Acidaminococcaceae_unclassified (Otu0007) was
 associated with *Salmonella*-challenge and correlated with the levels of caecal
 propionate and to a smaller extent valerate. Querying the representative OTU sequence 
 for Otu0007 using NCBI BLASTn [@altschul1990blast] revealed similarity to 
-*Phascolarctobacterium faecium* (E value = 1e-105; % identity =	94.84%).
+*Phascolarctobacterium faecium* (E value = 6e-110; % identity =	96.03%; accessed 
+March 3 2024).
 *P. faecium* has been shown to produce propionate through the catabolism of the
 dicarboxylic acid succinate [@wu2017phascolarctobacterium]. Experiments using 
 *in vitro* batch fermentation have shown that GOS is fermented to succinate by the
 human microbiota [@hopkins2003nondigestible], suggesting that the increased levels 
 of *P. faecium* are due to cross-feeding and not directly the catabolism of GOS. 
 *Megamonas* spp. (Otu0006) was also associated with SE-challenge and a positive 
-correlation was shown between its proportional abundance and propionate 
-concentration. *Megamonas* spp. are also known to metabolize succinate and produce propionate 
+correlation was shown between its proportional abundance and the cecal concentrations 
+of propionate and valerate. *Megamonas* spp. are also known to metabolize succinate and produce propionate 
 [@polansky2016processes; @barnes1979factors; @sakon2008sutterella; @chevrot2008rupellensis] and
-Khan and Chousalkar [@khan2020salmonella] observed that dosing chickens with a probiotic 
-*Bacillus* cocktail (two *Bacillus subtilis* strains, plus *Bacillus amyloliquefaciens*) 
-resulted in significant increases in fecal propionate concentration and the abundance 
-of *Megamonas*. Acidaminococcaceae_unclassified (Otu0007) and *Megamonas* spp. 
-(Otu0006) are closely related taxa. The representative OTU sequences have 84.86%
-sequence identity and on the basis of 16S rRNA gene sequence alignment it has been 
-reasoned that the genus *Megamonas* also be reclassified as a member of the family 
-Acidaminococcaceae [@morotomi2007megamonas]. However, if the 
+chickens dosed with a probiotic *Bacillus* cocktail (two *Bacillus subtilis* strains, 
+plus *Bacillus amyloliquefaciens*) were reported to produce significant increases 
+in fecal propionate and in the abundance of *Megamonas* [@khan2020salmonella]. 
+Acidaminococcaceae_unclassified (Otu0007) and *Megamonas* spp. 
+(Otu0006) are closely related taxa. The representative OTU sequences from this 
+trial have 86.22% sequence identity, and on the basis of 16S rRNA gene sequence 
+alignment it has been reasoned that the genus *Megamonas* be reclassified as a 
+member of the family Acidaminococcaceae [@morotomi2007megamonas]. However, if the 
 Acidaminococcaceae_unclassified (Otu0007) and *Megamonas* spp. (Otu0006) similarly 
 benefit from the provision of substrate succinate, this leaves the identities of 
-the primary GOS degraders still to be determined. The 16S rDNA sequencing error 
-rate, as calculated against a known mock community (positive control) indicates 
-that the errors introduced during sequencing and analysis are within appropriate 
-margins. However, although *Salmonella* Enteritidis was successfully cultured 
-from the cecal content of all chickens and all rarefaction curves approached 
-asymptote, *Salmonella* was not detected using 16S amplicon profiling.  
-It appears that the levels of *Salmonella* colonizing the gut were below the 
-limit of detection of this approach. 
+the primary GOS degraders still to be determined.  
+
+The 16S rRNA sequencing error rate, as calculated against a known mock community 
+(positive control) indicates that the errors introduced during sequencing and analysis 
+are within appropriate margins. However, although *Salmonella* Enteritidis was 
+successfully cultured from the cecal contents of all infected chickens and all 
+rarefaction curves approached asymptote, *Salmonella* was not detected using 16S 
+rRNA amplicon profiling. It appears that the levels of *Salmonella* colonizing 
+the gut were below the limit of detection of this approach. 
 
 We have previously reported that GOS improves the growth rate of Ross 308 broiler 
 chickens [@richards2020gos]. In the results presented here dietary GOS did not 
@@ -1386,13 +659,13 @@ noted a reduction in fat deposition and a reduction in average daily gain [@li20
 However, *in situ* generation of propionate by cecal microbiota in response to 
 *Salmonella* challenge represents a more focused and potentially more dynamic 
 exposure that may be less likely to give rise to wider physiological effects. 
-Outside the focus of this study the association between *Salmonella* colonization 
+Outside the scope of this study the association between *Salmonella* colonization 
 in the absence of disease and growth performance merits further investigation.
 
-Here we report evidence to support that the process by which dietary GOS hastens 
-*Salmonella* clearance is connected to the biochemical activities of specific bacterial 
-taxa. We hypothesize that supplementary dietary GOS is catabolized to succinate 
-in the ceacal lumen, which cultivates increased populations of succinate utilizing 
+Here we report evidence that indicates that the process by which dietary GOS hastens 
+*Salmonella* clearance is connected to the biochemical activities of specific 
+bacterial taxa. We hypothesize that supplementary dietary GOS is catabolized to 
+succinate in the ceacal lumen, which cultivates increased populations of succinate utilizing 
 bacteria. Succinate metabolism has been shown to have an important role in allowing 
 *Salmonella* to colonize the mouse gut [@spiga2017succinate]. The deleterious 
 effect on *S*. Enteritidis colonization is therefore likely two-fold: in the absence 
@@ -1401,12 +674,230 @@ growth and increased competition for succinate presents an additional hurdle. Ho
 the greatest relative abundance of Acidaminococcaceae and concentrations of propionate 
 were detected after GOS supplementation of the feed had ceased implying that the 
 early provision of GOS has a priming effect on the chicken cecal microbiome that 
-enables the response to *Salmonella* to colonization. We believe that the specific 
+enables the response to *Salmonella* colonization. We believe that the specific 
 benefits to the host provided by GOS, ie. hastening the eradication 
 of intestinal *Salmonella* infection, and the interaction with a narrow category of specific 
 bacterial taxa strictly fulfills the prebiotic criteria, as described by Gibson 
-*et al.* [@gibson2017prebiotic], and by doing so presents an attractive target for 
+*et al.* [@gibson2017prebiotic], and by doing so has potential as an attractive target for 
 safe and effective interventions against a key zoonotic, foodborne pathogen.
+
+# Materials and methods
+
+## Chickens
+Commercial male Ross 308 broiler chicks were obtained as hatchlings (PD Hook, UK) 
+and housed under strict biosecurity in a controlled environment operating at 
+containment level 2 (https://www.hse.gov.uk/biosafety/management-containment-labs.pdf) 
+at the University of Nottingham. Ambient temperature and relative humidity were 
+controlled as dictated in the Code of Practice for the Housing and Care of 
+Animals Bred, Supplied or Used for Scientific Purposes. Feeds were formulated on 
+a least cost basis to meet the requirements set out in the Ross 308 Broiler 
+Nutrition Specifications 2014 (Aviagen, UK) and prepared by Target Feeds Ltd 
+(Shropshire, UK). Throughout the trial feed and water were provided *ad libitum*. 
+In order to ensure that the birds were *Salmonella* free upon arrival, the 
+absorbent papers on which the birds had been transported were shredded and then 
+added to Buffered Peptone Water (Oxoid, UK) for *Salmonella* enrichment as 
+described below.
+
+## Feeding regime
+The feeding regime was as follows: the control diet group was sustained on a 
+wheat-soybean meal-based feed provided as a starter crumb at 0-10 days, grower 
+pellets at 11-24 days and finisher pellets at 25-35 days. The starter diet contained 
+wheat (59.9% w/w), soya meal (32.5% w/w), soyabean oil (3.65% w/w), limestone 
+(0.6% w/w), calcium phosphate (1.59% w/w), sodium bicarbonate (0.27% w/w), the 
+enzymes phytase and xylanase (dosed according to the manufacturer's instructions 
+(DSM Nutritional Products Ltd., CH) and a vitamin mix containing salt, lysine HCl,
+DL-methionine and threonine. The grower and finisher diets increased the wheat 
+content at the expense of soya meal by 2 and 5% w/w respectively. Figure 1 
+summarizes the timings of changes in feed composition, *Salmonella* challenge 
+and sample collection. GOS was provided as Nutrabiotic® GOS 64%, 
+batch no. AQ8035 (Saputo Dairy, UK). Galactooligosaccharide preparations are 
+manufactured by the $\beta$-galactosidase catalysed transglycosylation of lactose 
+producing, in the case of batch AQ8035: glucose and galactose (22.4 % m/m DM), 
+lactose (10.1 % m/m DM) and other disaccharides that are functionally included 
+as galactooligosaccharides, and galactooligosaccharides (DP2 to DP8+ and typically 
+of the form (gal)n-glc). Nutrabiotic® GOS 64% is produced as a feed grade syrup; 
+batch AQ8035 has a dry matter concentration of 73.4% m/m and a total 
+galactooligosaccharides concentration of 66.5% m/m DM. Starter feed was 
+supplemented with 2.32% w/w GOS and isocaloric adjustments made in the wheat and 
+soybean oil contents. The grower feed contained 1.16% GOS with the wheat and 
+soybean oil contents adjusted accordingly. Nutrabiotic® GOS was not added to the 
+finisher feed. The final feeds were isocaloric with the same content of crude 
+protein and Degussa poultry digestible amino acid.
+
+## Challenge trial
+*Salmonella enterica* serovar Enteritidis P125109 [@thomson2008comparative]
+was selected as a challenge strain as the nalidixic acid resistance it exhibits 
+facilitates enumeration through direct cultivation. The challenge trial was 
+performed to determine the effects of *Salmonella* exposure on broiler chickens 
+sustained on GOS-supplemented feed, where the experimental implementation and 
+husbandry were conducted according to the ARRIVE guidelines [@kilkenny2010ARRIVE]. 
+Upon arrival chicks were weighed and randomly placed in pens of either 5 or 6 
+birds in one of two environmentally controlled containment rooms. Each room 
+contained 14 independent pens with 7 pens per experimental group designated to 
+receive either the control or GOS-supplemented feed. Samples were subsequently 
+collected from a single chicken from each pen at each experimental timepoint.
+The coprophagous behavior of co-housed chickens means the birds are exposed to 
+bacteria from each other's intestinal content and therefore in this design the 
+pen is the independent experimental unit (*n* = 7). At 
+20-days-old chickens in one room were orally challenged with 4.6 x 10^8^ CFU  
+*S.* Enteritidis suspended in 1 ml of Maximum Recovery Diluent (MRD; Oxoid, UK)
+or in the second room given an equivalent mock dose of sterile MRD. Following 
+challenge samples were collected at 2, 4, 8 and 15 days post-infection. 
+
+Live weights were recorded for the chickens selected at random from each pen 
+for each time point, and the birds euthanized by exposure to rising CO~2~ or 
+parenteral barbiturate overdose followed by cervical dislocation in accord with 
+Schedule 1 of the UK Animals (Scientific Procedures) Act. Sample tissues, 
+cardiac blood and intestinal contents were collected immediately post-mortem. 
+Ileal tissues were sectioned from approximately 3 cm distal to Meckel's 
+diverticulum and cecal tissues from the distal tips of the ceca. Intestinal 
+tissues were either flash frozen in liquid nitrogen for subsequent RNA isolation 
+or preserved in 10% (w/v) neutral buffered formalin (Fisher Scientific, UK) for 
+histological assessment. Approximately 1 g of cecal contents was aseptically 
+collected from the distal end of each cecal pouch and flash frozen in liquid 
+nitrogen before being stored at -80°C prior to genomic DNA isolation. A further 
+2-3 g sample of cecal contents was similarly collected from both ceca and combined 
+in pre-weighed Universal vials before being stored on ice prior to *Salmonella* 
+enumeration and SCFA analysis. Prior to incising the gut, the spleen and liver 
+were aseptically excised with tissue samples preserved in 10% (w/v) neutral 
+buffered formalin and the remainder placed in sterile polythene bags and stored
+on ice prior to *Salmonella* enumeration.
+
+## *Salmonella* enumeration
+Cecal contents were suspended at 0.1 g/ml and serially diluted 1:10 in MRD from
+which 100 $\mu$l aliquots over a range of dilutions were spread onto XLD agar 
+(Oxoid, UK) modified with 1 $\mu$g/ml Novobiocin (Sigma-Aldrich, UK) and 12.5 
+$\mu$g/ml Nalidixic acid (Sigma-Aldrich). Cecal contents collected from each 
+euthanized chicken were plated in triplicate and incubated at 37°C for 24 h prior 
+to enumeration. Mean values of log~10~-transformed colony-forming units were used 
+for statistical analysis. *Salmonella* was detected through enrichment by 
+transferring ~0.1 g cecal contents or chick bedding papers to 10 ml BPW that was then 
+incubated at 37°C for 16-20 h before 0.1 ml volumes of the BPW suspension were 
+dispensed onto MSRV agar (Oxoid) in triplicate. MSRV plates were incubated without 
+inversion at 42°C for 24 h before any growth was sub-cultured to XLD plates (with 
+no nalidixic acid or novobiocin added) and incubated at 37°C. Presumptive 
+*Salmonella* colonies were confirmed with Poly O antiserum (Pro-Lab Diagnostics, 
+UK). Liver and spleen tissues (1 - 5 g) were suspended 1:10 w/v in BPW and 
+disrupted in a Seward Stomacher 80 (Seward Biomaster, UK) for 1 min on medium 
+speed. Viable *Salmonella* present were recovered by direct plating 
+of 0.1 ml of the tissue suspension onto modified XLD or through enrichment by 
+incubating the remaining tissue suspension followed by isolation of any 
+*Salmonella* present on MSRV. Incubation conditions and confirmation methods are 
+as described above.
+
+## 16S rRNA gene sequences and analysis
+Total DNAs were isolated from cecal contents using a QIAcube HT apparatus and 
+QIAamp PowerFecal Pro DNA kit (Qiagen, UK). Bacterial 16S rRNA gene sequences
+were PCR amplified using universal primers: 515f (5' GTGCCAGCMGCCGCGGTAA 3') 
+and 806r (5' GGACTACHVGGGTWTCTAAT 3') designed to flank the hypervariable V4 
+region of the 16S rRNA genes [@caporaso2011global]. Amplicons were sequenced 
+on the Illumina MiSeq platform (Illumina, USA) using 2 × 250 bp cycles according 
+to the manufacturer’s instructions and the protocol described by Kozich *et al.* 
+[@kozich2013sop]. Using the same protocol, no-template negative control amplicon 
+libraries were prepared for both kit reagent and PCR batches and a positive control
+library was prepared from a defined mock community (ZymoBIOMICS Microbial Community 
+DNA Standard, Zymo Research, USA). Mothur code to reproduce the analyses has been 
+made available (see Data and code availability statement). All sequence data of 
+the 16S rRNA genes were quality filtered and then clustered into operational 
+taxonomic units (OTUs) in mothur v1.48 [@schloss2009introducing] 
+using the MiSeq as described by the package developers [@kozich2013sop].
+
+## Host gene expression analysis
+Chicken intestinal total RNA was isolated from ileal and cecal tonsil tissues. 
+Tissue biopsies were weighed out to 100 mg followed by homogenization with 
+RLT lysis buffer supplied with the RNeasy kit (Qiagen, Germany) and 2.8 mm 
+ceramic beads (MO BIO Laboratories Inc., Canada) in a TissueLyser II (Qiagen) 
+bead mill. Total RNA was then extracted from lysates using the RNeasy kit and 
+QIAcube HT (Qiagen). The quality of the extracted RNAs were analyzed using a 
+TapeStation 2200 (Agilent, USA) by measuring the RNA integrity number. Reverse
+transcription of extracted RNA was carried out with the RT2 First Strand Kit 
+(Qiagen) to synthesise the first-strand cDNA and remove any residual genomic DNA 
+according to manufacturer’s instruction. The expression of host cytokine and 
+chemokine genes were determined by qPCR with RT2 SYBR Green qPCR Mastermix 
+(Qiagen) in a Roche Diagnostics Light Cycler 480 instrument (Hoffmann La Roche AG, 
+Switzerland). Primer sets were purchased as customized RT2 Profiler PCR 
+Arrays (Qiagen) and verified to detect the transcripts for IFN-$\gamma$, IL-1$\beta$, IL-4, 
+IL-6, IL-8L1, IL-8L2, IL-9, IL-10, IL-13, IL-15, IL-17A, IL-22, NOS2, STAT3, STAT4, STAT6, 
+STAT5$\beta$, GATA3 and TGIF1 in chicken. The means of triplicate Ct values were 
+used for analysis, where target genes Ct values were independently normalized to 
+those of the housekeeping genes glyceraldehyde 3-phosphate dehydrogenase (GAPDH) 
+and 60S ribosomal protein L4 (RPL4). The normalised Ct values for the two 
+housekeeping genes were in close agreement with an R2 of 0.94 across all 
+determinations for cecal and ileal tissues.   
+
+## Histology
+Tissue samples were fixed in a 10% formalin solution and dehydrated through a 
+series of alcohol solutions, cleared in xylene, and embedded in paraffin wax 
+(Microtechnical Services Ltd, Exeter, UK). Sections (3 to 5 µm thick) were prepared 
+and stained with modified hematoxylin and eosin (H&E). Independent intestinal 
+sections were stained with periodic acid-Schiff (PAS). The stained slides were 
+scanned using a NanoZoomer Digital Pathology System (Hamamatsu, Welwyn Garden City, 
+UK) at 40X resolution. The liver sections were examined for the infiltration of 
+inflammatory cells around a central vein, whether porta hepatis or sinusoid. 
+Villus heights and crypt depths of intestinal tissues were recorded from operator 
+blinded measurements of histological stained slides scanned for each tissue sample. 
+Villus heights were measured from the tip of the villus to the crypt opening and 
+the associated crypt depth was measured from the base of the crypt to the level 
+of the crypt opening. The ratios of villus height to relative crypt depth (v/c 
+ratio) were calculated from these measurements. Dimensions for 10 well-oriented 
+villi per tissue sample of 7 birds per experimental group at each sampling time 
+were analyzed.
+
+## Immunoglobin quantification
+Anti-*Salmonella* IgY and IgA antibodies in chicken serum were detected by 
+enzyme-linked immunosorbent assay (ELISA) using the method of Withanage *et al.*
+[@withanage2005cytokine] with the following modifications. *Salmonella* 
+Enteritidis P125109 cells were subjected to 3 freeze–thaw cycles between 
+room-temperature and -80°C, followed by sonication on ice using 9 x 20 s bursts
+to break the cells. Unbroken cells were removed by centrifugation at 4000 x g 
+for 20 min at 4 °C followed by filtration through a 0.2 $\mu$m filter. The protein
+concentration of the resultant soluble fraction was measured using Pierce BCA kit
+(Thermofisher, UK) and aliquots stored at -20 °C. For ELISA chicken serum 
+samples were diluted 1:250 for IgY and 1:100 for IgA with PBS containing 
+Tween 20 (0.05%) (PBS-T) and 3% skimmed milk powder (SMP). Horse radish 
+peroxidase (HRP) conjugated rabbit anti-chicken IgY (Sigma Aldrich) and goat
+anti-chicken (Abcam, UK) were diluted 1:5000 in PBS-T 3% SMP. The enzyme 
+substrate used was 3,3´,5,5´-tetramentylbenzidine (TMB; Thermofisher) with the 
+reaction stopped with 100 $\mu$l 2 M sulphuric acid after 30 min and absorbance read 
+at 450 nm.
+
+## SCFA quantification
+Duplicate samples were analysed for the short chain fatty acids (SCFA): 
+acetic, ($\ge$ 99%; Thermofisher), propionic, (99%; Thermofisher), butyric, ($\ge$ 99%;
+Thermofisher), isobutyric, ($\ge$ 99%; Thermofisher), 2-methylbutyric, (>95%; 
+TCI UK Ltd., UK), valeric, (99%; Thermofisher), isovaleric, (99%; Thermofisher), 
+hexanoic, (98%; TCI UK Ltd.) and lactic acid, (90.2%; Thermofisher) by GC MS. 
+Samples were prepared from weighed thawed cecal content material by sonication 
+with the addition of 2-methylvaleric acid (>98%, Thermofisher) as internal 
+standard. The SCFAs were converted to the ethyl ester and extracted into pentane 
+(AR Grade; Thermofisher) along with the additions of the corresponding internal
+standards. The internal standards were separately synthesised as the deuterated 
+ethyl ester for each SCFA, except for ethyl lactate D5-benzoate the internal 
+standard for lactic acid analysis. Sample SCFA concentrations were measured by 
+GC-MS (Agilent 6890 + 5977 GC-MS; Agilent DB 5MS UI, 15 m x 0.25 mm x 1.00 $\mu$m 
+column; He carrier gas at 1.20 mL/min.; using a defined oven temperature profile 
+over a run time of 33.2 min.; operated in selected ion monitoring (SIM) mode 
+with 10 different SIM groups) with reference to a standard curve for each SCFA, 
+with each calibrant being prepared using a procedure similar to that for the 
+samples. 
+
+## Quantification and statistical analysis
+The statistical tests used are detailed in figure legends. Statistical analyses 
+were performed in the R language (version 4.3.2). Mothur (version 1.48) was used 
+to curate and analyse 16S amplicon data. All analyses were performed within a 
+conda environment (https://docs.conda.io/en/latest/), and the .yml recipe for 
+the conda environment is available on Github (https://github.com/PJRichards/richards_salmonella_gos). 
+R code to reproduce the analyses and all figures has also been made available on 
+Github (https://github.com/PJRichards/richards_salmonella_gos).
+The design for Figure 3C, D and E was adapted from Wallen *et al* [@wallen2022metagenomics].
+
+## Data Availability
+Amplicon sequence data have been deposited at NCBI and are publicly available as 
+of the date of publication under the accession number PRJNA972431. All original 
+code has been deposited on Github (https://github.com/PJRichards/richards_salmonella_gos). 
+Any additional information required to reanalyze the data reported in this paper 
+is available on Github (https://github.com/PJRichards/richards_salmonella_gos) 
+or is available on request.
 
 ## Abbreviations
 BPW: Buffered peptone water; da: Days of age; dpi: Days post infection; 
@@ -1418,72 +909,42 @@ XLD: Xylose lysine deoxycholate culture medium.
 
 ## Declarations
 
-### Ethics approval and consent to participate
-The use of birds in experiments were subjected to approval process under national 
+### Ethical approval
+The use of birds in experiments were subjected to the approval process under national 
 guidelines by the United Kingdom Home Office. This project was performed under 
 license of the United Kingdom Government Home Office Project Licensing ASPA 86. 
 The University Ethics Committee internally reviewed all project licenses prior to 
 submission to the Home Office. This includes the handling of animals, scrutiny of 
 welfare and ethics.
 
-### Consent for publication
-All the authors approved the submission.
-
-### Availability of data and material
-Amplicon sequence data have been deposited at NCBI and are publicly available as 
-of the date of publication under the the accession number PRJNA972431. All original 
-code has been deposited on Github (https://github.com/PJRichards/richards_salmonella_gos). 
-Any additional information required to reanalyze the data reported in this paper 
-is available on Github (https://github.com/PJRichards/richards_salmonella_gos) 
-or is available on request. 
-
-### Competing interests
-NMF acted as a consultant to Saputo Dairy UK.
-
-### Funding
-The authors acknowledge research funding to IFC from Saputo Dairy UK 
-(formerly Dairy Crest Ltd). 
-
-### Authors' contributions
-PJR, PLC, NMF and IFC designed the trial. PJR, AA, LL, GMF, EK, AJC, PLC and IFC 
-contributed to the sample collection and *Salmonella* enumeration. LL and AJC 
-contributed to gene expression experiments. AA and EK contributed to the 
-microbiota experiments. GML and AJC contributed to the histology experiments. 
-NMF contributed to the SCFA experiments. PJR and IFC analyzed the data. PJR and 
-IFC wrote the manuscript.
-
 ## Acknowledgments
-The authors thank Matt Stirling, at Analytical Innovations Ltd, who worked on 
-SCFA method development and analysis.
+The authors acknowledge research funding to IFC from Saputo Dairy UK (formerly 
+Dairy Crest Ltd). NMF acted as a consultant to Saputo Dairy UK. The authors thank 
+Matt Stirling, at Analytical Innovations Ltd, who worked on SCFA method development 
+and analysis. Authors contributions: PJR, PLC, NMF and IFC designed the trial. 
+PJR, AA, LL, GMF, EK, AJC, PLC and IFC contributed to the sample collection and 
+*Salmonella* enumeration. LL and AJC contributed to gene expression experiments. 
+AA and EK contributed to the microbiota experiments. GMF and AJC contributed to 
+the histology experiments. NMF contributed to the SCFA experiments. PJR and IFC 
+analyzed the data. PJR and IFC wrote the manuscript.
 
 ## Figure and Table legends
 ```{r n calc, include=FALSE}
-pcoa <- read_tsv(pcoa_path) 
-
-pcoa_fmt <- pcoa %>% 
-                            separate(group, 
-                                     into = c("Trial", "Diet", "Challenge", "Age", "Replicate"), 
-                                     sep = "_") %>% 
-                            mutate(Cohort = paste(Diet, Challenge))
-                                       
-pcoa_n <- pcoa_fmt %>% 
-                                group_by(Trial,Challenge,Age,Diet) %>% 
-                                count()
-
-
-
+pcoa_n <- pcoa %>% 
+                group_by(Trial,Challenge,Age,Feed) %>% 
+                count()
 
 alpha_n <- alpha %>% 
                     group_by(Age,Trial,Diet,Challenge) %>% 
                     count()
 
-
 GE_n <- alDE %>% group_by(Feed,Challenge,Age,gene) %>% count()
 
+sal_count_n <- SE_counts_raw %>% group_by(Age,Challenge, Diet) %>% count()
 
-
-
-
+villus_n <- villus_len %>% 
+            group_by(Age, Diet, Challenge) %>% 
+            summarise(n = n()) 
 
 ```
 
@@ -1496,9 +957,9 @@ colonization). Samples were collected by culling a single bird collected from ea
 pen at each experimental timepoint.
 
 **Figure 2. GOS-supplemented feed in early life hastens the clearance of *S.* Enteritidis from chickens.** 
-Birds were challenged with *S.* Enteritidis at 20 days. The fill color indicates 
-diet: unfilled, control feed without GOS; yellow, feed supplemented with GOS. 
-The shaded strip areas above each panel indicates the ages of the bird in days 
+Birds were challenged with *S.* Enteritidis at 20 days of age. The fill color indicates 
+the diet: unfilled, control feed without GOS; yellow, feed supplemented with GOS. 
+The shaded strip areas above each panel indicate the ages of the bird in days 
 followed by days post infection in parentheses. 
 **(A)** Cecal burden of *S.* Enteritidis. Each data marker represents an 
 individual cecal community/bird collected from each independent pen (*n* = `r min(sal_count_n$n)`). 
@@ -1540,18 +1001,16 @@ the bird in days followed by days post infection in parentheses. The sequencing
 error rate was determined as `r 100*(sum(error$sum_err)/(sum(error$Sequences)*250)) |> round(4)`% 
 using a control cocktail of 8 bacterial 
 species (Sum of mismatches to reference / Sum of bases in query). 
-**(C,D)** Discriminative taxa in SE challenged chickens identified using 
+**(C)** Discriminative taxa in SE challenged chickens identified using 
 multivariate analysis in both ALDEX2 (version 1.30.0) and ANCOM-BC (version 2.0.1) packages. 
-**(C)** shows all results, whereas **(D)** shows the same data with an expanded
-scale and `r df %>% ungroup |> slice_min(chal.max) |> pull(taxon)` excluded for 
-clarity.  Superfluous '0's in OTU ID have been removed for clarity. OTUs were
+Superfluous '0's in OTU ID have been removed for clarity. OTUs were
 identified as follows: `r df %>% filter(chal_fill != "p.adj > 0.05") %>% mutate(legend = paste(taxon, "=", id)) %>% pull() %>% str_c(collapse = "; ")`. 
-**(E)** Discriminative taxa in jGOS-raised chickens identified using multivariate analysis 
+**(D)** Discriminative taxa in jGOS-raised chickens identified using multivariate analysis 
 in both ALDEX2 and ANCOM-BC packages. Superfluous '0's in OTU ID have been removed 
 for clarity. OTUs are identified as follows: `r df %>% filter(diet_fill != "p.adj > 0.05") %>% mutate(legend = paste(taxon, "=", id)) %>% pull() %>% str_c(collapse = "; ")`
-**(F)** Effect of S. Enteritidis challenge on expression of IL-17A, IL-22, 
+**(E)** Effect of S. Enteritidis challenge on expression of IL-17A, IL-22, 
 IL-8L1, IL8-L2, IFN-$\gamma$ and IL-1$\beta$ in the ceca. Gene expression calculated 
-as 2^-($\Delta$$\Delta$Ct)^ and presented as fold-change in *Salmonella*-challenged 
+as 2^-($\Delta\Delta$Ct)^ and presented as fold-change in *Salmonella*-challenged 
 chickens relative to the mean expression level of mock-challenged chickens for 
 each feed group (Control or jGOS). Note that *n* = `r GE_n |> filter(gene %in% c("'IL-17A'","IFN-gamma","'IL-22'","'IL-8L2'", "'IL-8L2'", "'IL-8L1'")) %>% pull(n) %>% max()`
 for all groups, excluding the control diet, mock-challenged cohort value for IL-17A 
@@ -1582,9 +1041,9 @@ Both size and color of the data marker indicate Spearman correlation coefficient
 FDR correction for each SCFA at each time point. Filled data markers indicate significance 
 (*p* $\leq$ 0.05). Results are reported at OTU taxonomic 
 level. Due to failure to measure SCFA in some samples, outlined above, the 
-correlations were calculated on the basis of `r bcabund_scfa |> filter(age=="22") %>% pull(Group) |> n_distinct("Group")` measurements at 22 days, `r bcabund_scfa |> filter(age=="24") %>% pull(Group) |> n_distinct("Group")`
-measurements at 24, `r bcabund_scfa |> filter(age=="28") %>% pull(Group) |> n_distinct("Group")`
-measurements at 28 days and `r bcabund_scfa |> filter(age=="35") %>% pull(Group) |> n_distinct("Group")` measurements at 35 days.
+correlations were calculated on the basis of `r abund_scfa |> filter(age=="22 (2)") %>% pull(Group) |> n_distinct("Group")` measurements at 22 days, `r abund_scfa |> filter(age=="24 (4)") %>% pull(Group) |> n_distinct("Group")`
+measurements at 24, `r abund_scfa |> filter(age=="28 (8)") %>% pull(Group) |> n_distinct("Group")`
+measurements at 28 days and `r abund_scfa |> filter(age=="35 (15)") %>% pull(Group) |> n_distinct("Group")` measurements at 35 days.
 
 **Figure S1. Sequencing effort for all communities.** Rarefaction curves generated
 using re-sampling without replacement. 
@@ -1592,7 +1051,7 @@ using re-sampling without replacement.
 **Figure S2. Effect of *S.* Enteritidis challenge on expression of genes connected to innate immune response.** 
 Effect of *S.* Enteritidis challenge on cecal expression of GATA3, IL-10, IL-15,
 IL-4, NOS2, STAT3, STAT4, STAT5B, STAT6 and TGIF1. Gene expression calculated as 
-2^-$\Delta$$\Delta$Ct^ and presented as fold-change in *Salmonella*-challenged 
+2^-$\Delta\Delta$Ct^ and presented as fold-change in *Salmonella*-challenged 
 chickens relative to the mean expression level of mock-challenged chickens for each 
 feed group (Control or jGOS). Note that *n* = `r GE_n %>% filter(gene %in% c("IL4", "STAT6", "STAT5B", "STAT3", "IL10", "NOS2", "STAT4", "GATA3", "IL15", "TGIF1"))  %>% pull(n) %>% unique()`
 for all groups presented here. The number above the bar indicates the adjusted 
@@ -1606,7 +1065,8 @@ shown. Shaded strips above each panel indicate the corresponding gene name.
 **(B)** IgA isotype anti-*Salmonella* antibody detection (serum diluted 1:100). 
 The data are recorded as the means of the optical density readings from the ELISA 
 at 450 nm for seven birds per group at each time point (days of age). The error 
-bars indicate the standard errors of the means.
+bars indicate the standard errors of the means. Bird age in days is shown on the x axis
+with days post infection in parentheses.
 
 **Figure S4. Correlation plot showing significant relationships between proportional OTU abundances and absolute concentration (ppm) of the SCFA metabolome.** 
 Correlation plot showing significant relationships between proportional
@@ -1615,9 +1075,9 @@ Both size and colour of data marker indicate Spearman correlation coefficient wi
 FDR correction for each SCFA at each timepoint. Filled data markers indicate significance 
 (*p* $\leq$ 0.05). Results are reported at OTU taxonomic levels. 
 Due to failure to measure SCFA in some samples, outlined above, Correlations 
-are calculated on the basis of `r bcabund_scfa |> filter(age=="22") %>% pull(Group) |> n_distinct("Group")` measurements at 22 days, `r bcabund_scfa |> filter(age=="24") %>% pull(Group) |> n_distinct("Group")`
-measurements at 24, `r bcabund_scfa |> filter(age=="28") %>% pull(Group) |> n_distinct("Group")`
-measurements at 28 days and `r bcabund_scfa |> filter(age=="35") %>% pull(Group) |> n_distinct("Group")` measurements at 35 days.
+are calculated on the basis of `r abund_scfa |> filter(age=="22") %>% pull(Group) |> n_distinct("Group")` measurements at 22 days, `r abund_scfa |> filter(age=="24") %>% pull(Group) |> n_distinct("Group")`
+measurements at 24, `r abund_scfa |> filter(age=="28") %>% pull(Group) |> n_distinct("Group")`
+measurements at 28 days and `r abund_scfa |> filter(age=="35") %>% pull(Group) |> n_distinct("Group")` measurements at 35 days.
 
 **Table S1. Prevalence of *Salmonella* Enteritidis in liver and spleen tissues following oral challenge at 20-days old.**
 The table shows the number of liver and spleen tissues collected from 
