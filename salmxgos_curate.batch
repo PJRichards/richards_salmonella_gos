@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+
+eval "$(conda shell.bash hook)"
+conda activate salmxgos_curate
+
+# get reference dbs
+bash code/01_get_reads.sh
+
+# get reference dbs
+bash code/02_get_references.batch
+
+# exclude pcr and seq errors
+mothur code/03_get_good_seqs.batch
+
+# determine error rate
+mothur code/04_get_error.batch
+
+# get OTUs
+mothur code/05_get_shared_otus.batch
+
+# get alpha diversity data
+mothur code/06_get_alpha.batch
+
+# get fasta for OTUs
+mothur code/07_get_repfasta.batch

@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+
+eval "$(conda shell.bash hook)"
+conda activate salmxgos_manuscript
+
+# get discriminative using ALDEx2
+Rscript code/09_get_ALDEX2.R
+
+# get discriminative using ANCOM-BC2
+Rscript code/10_get_ANCOMBC2.R
+
+# draw Table S1
+Rscript -e "rmarkdown::render(input='code/ST1_SE_tissue.Rmd', output_dir = 'submission')"  
+
+# draw Table S2
+Rscript -e "rmarkdown::render(input='code/ST2_kitome.Rmd', output_dir = 'submission')"  
+
+# get Citation Style Language template
+wget https://raw.githubusercontent.com/citation-style-language/styles/master/dependent/msystems.csl
+
+# write paper!
+Rscript -e "rmarkdown::render(input='salm_gos_manuscript.Rmd', output_dir = 'submission')" 
+
