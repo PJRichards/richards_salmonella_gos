@@ -1,0 +1,6 @@
+set.seed(seed=20122016)
+set.dir(input=results/mothur, output=results/mothur, processors=6)
+summary.single(shared=sal.trim.contigs.sort.good.unique.good.filter.unique.precluster.denovo.vsearch.pick.pick.opti_mcc.0.03.pick.shared, calc=nseqs-coverage-invsimpson-shannon-sobs, subsample=1000)
+dist.shared(shared=sal.trim.contigs.sort.good.unique.good.filter.unique.precluster.denovo.vsearch.pick.pick.opti_mcc.0.03.pick.shared, calc=braycurtis, subsample=1000)
+pcoa(phylip=sal.trim.contigs.sort.good.unique.good.filter.unique.precluster.denovo.vsearch.pick.pick.opti_mcc.0.03.pick.braycurtis.0.03.lt.ave.dist)
+nmds(phylip=sal.trim.contigs.sort.good.unique.good.filter.unique.precluster.denovo.vsearch.pick.pick.opti_mcc.0.03.pick.braycurtis.0.03.lt.ave.dist)

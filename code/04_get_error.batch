@@ -1,0 +1,7 @@
+set.seed(seed=20122016)
+set.current(inputdir=results/mothur, outputdir=results/mothur, processors=1)
+get.groups(count=sal.trim.contigs.sort.good.unique.good.filter.unique.precluster.denovo.vsearch.pick.count_table, fasta=sal.trim.contigs.sort.good.unique.good.filter.unique.precluster.denovo.vsearch.pick.fasta, taxonomy=sal.trim.contigs.sort.good.unique.good.filter.unique.precluster.denovo.vsearch.pds.wang.pick.taxonomy, groups=l_mock)
+rename.file(input=sal.trim.contigs.sort.good.unique.good.filter.unique.precluster.denovo.vsearch.pick.pick.fasta, new=mock.fasta)
+rename.file(input=sal.trim.contigs.sort.good.unique.good.filter.unique.precluster.denovo.vsearch.pick.pick.count_table, new=mock.count_table)
+rename.file(input=sal.trim.contigs.sort.good.unique.good.filter.unique.precluster.denovo.vsearch.pds.wang.pick.pick.taxonomy, new=mock.taxonomy)
+seq.error(fasta=mock.fasta, count=mock.count_table, reference=resources/references/mock_ZYMOPOS.fasta, aligned=F)
