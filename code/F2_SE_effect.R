@@ -10,15 +10,14 @@ set.seed(1216)
 # packages
 library("readr")
 library("dplyr")
-library("tidyr")
 library("cowplot")
 library("ggplot2")
 library("purrr")
+library("tidyr")
 library("broom")
 
 # input
 SE_counts_path <- "resources/zootechnical/late_SE_counts.csv"
-vilus_raw_path <- "resources/zootechnical/late_vilus_length.csv"
 weight_raw_path <- "resources/zootechnical/late_BW_cull.tsv"
 
 # output
@@ -40,11 +39,12 @@ SE_counts <- SE_counts_raw %>%
 
 # make placeholder df to harmonize/clarify plot spacing
 placeholder_for_count <- tibble(
-                      Diet =  c("GOS","ctl","GOS","ctl","GOS","ctl","GOS","ctl"), 
-                      Age = rep(c(22, 24, 28, 35), each = 2),
-                      Challenge = "Mock"
-                      ) %>% 
-                mutate(Cohort = paste(Diet, sep = "_", Challenge)) 
+                                Diet =  c("GOS","ctl","GOS","ctl",
+                                          "GOS","ctl","GOS","ctl"), 
+                                Age = rep(c(22, 24, 28, 35), each = 2),
+                                Challenge = "Mock"
+                                ) %>% 
+                              mutate(Cohort = paste(Diet, sep = "_", Challenge)) 
 
 # add placeholder count data to add 'Mock' data to facet
 # add dpi figure to "age"
@@ -58,7 +58,7 @@ SE_counts_stats <- SE_counts %>%
                             group_nest(Age) %>% 
                             mutate(results = map(data, ~tidy(
                                       wilcox.test(`Salmonella (log10 CFU)` ~ Diet, 
-                                                  paired = FALSE, 
+                                                  #paired = FALSE, 
                                                   exact = FALSE,
                                                   data = .)))) %>% 
                             unnest(cols = results)
@@ -147,63 +147,11 @@ weight.p <-
                      aes(yintercept = mean_mass), linetype = "dashed")
   
 
-############ Villus height #####################################################
 
-# read in histo data
-villus_len_raw <- read_csv(vilus_raw_path) 
-
-# format histo data
-villus_len <- villus_len_raw %>% 
-                    group_by(pen, Diet, Challenge, Age, Cohort) %>%
-                    summarise("VL" = mean(VL),
-                              n = n()) %>% 
-                    ungroup()
-                   
-# count villus n   
-print("villus n")
-villus_len %>% 
-            group_by(Age, Diet, Challenge) %>% 
-            summarise(n = n()) 
-
-# add dpi
-# fix feed names
-villus_len_fmt <- villus_len %>% 
-                    mutate(Age = paste0(Age," (",Age-20,")"),
-                            feed = if_else(Diet == "ctl", "ctl",
-                              if_else(Diet == "GOS" & Age < 28,"+GOS","ctl")))
-                        
-# get mass stats              
-villus_TukeyHSD <- 
-          villus_len_fmt %>% 
-              group_by(Age) %>% 
-              nest() %>%  
-              mutate(Tukey = map(data, ~ TukeyHSD(aov(VL ~ Challenge * Diet, data=.x)) %>% 
-                       tidy())) %>% 
-              select(-data) %>% 
-              unnest(cols = Tukey) %>% 
-              filter(term == "Challenge:Diet")
-
-# plot vilus height
-villus_len.p <- 
-  villus_len_fmt  %>% 
-          ggplot(aes(x = Cohort, y = VL, fill = feed)) + 
-            geom_boxplot(outlier.shape = NA) +
-            geom_point(aes(shape = Challenge), position = position_jitterdodge(0.2)) +
-            facet_grid(cols = vars(Age)) +
-            scale_fill_manual(values = c("#f5e4ae","#ffffff")) +
-            scale_x_discrete(name = "", labels = c("Mock","SE","Mock","SE")) +
-            scale_y_continuous(limits = c(round(min(villus_len_fmt$VL),-2),
-                                          round(max(villus_len_fmt$VL),-2))) +
-            theme_bw() +
-            theme(axis.text = element_text(colour = "black"),
-                  panel.grid.minor = element_blank(), 
-                  panel.grid.major = element_blank()) +
-          ylab(label = "Villus height (\u00b5m)")
         
 # Print unannotated figure 
 zootech.p <- plot_grid(counts.p + theme(legend.position="none"), 
                        weight.p + theme(legend.position="none"), 
-                       villus_len.p + theme(legend.position="none"),
                        ncol = 1, axis = "lr", align = "v", 
                        labels = c("A", "B", "C"))
 
@@ -222,83 +170,62 @@ SE_counts_stats_35 <- SE_counts_stats %>% filter(Age == 35) %>% pull(p.value)
 
 # annotate plot with significance
 zootech_annotate.p <- ggdraw(zootech.p) +
-  # panel C groups
-  draw_line(x = c(0.117, 0.17), y = 0.035, size = 0.43) +
-    draw_label("ctl", x=0.1435, y= 0.019, size=10) +
-  draw_line(x = c(0.218, 0.271), y = 0.035, size = 0.43) +
-    draw_label("jGOS", x=0.2445, y=0.019, size=10) +
+  # panel B groups
+  draw_line(x = c(0.116, 0.17), y = 0.035, size = 0.43) +
+    draw_label("ctl", x=0.143, y= 0.019, size=10) +
+  draw_line(x = c(0.22, 0.273), y = 0.035, size = 0.43) +
+    draw_label("jGOS", x=0.2465, y=0.019, size=10) +
   
-  draw_line(x = c(0.346, 0.399), y = 0.035, size = 0.43) +
-    draw_label("ctl", x=0.3725, y=0.019, size=10) +
+  draw_line(x = c(0.346, 0.398), y = 0.035, size = 0.43) +
+    draw_label("ctl", x=0.372, y=0.019, size=10) +
   draw_line(x = c(0.448, 0.501), y = 0.035, size = 0.43) +
-    draw_label("jGOS", x=0.4757, y=0.019, size=10) +
+    draw_label("jGOS", x=0.4745, y=0.019, size=10) +
   
-  draw_line(x = c(0.57, 0.628), y = 0.035, size = 0.43) +
-    draw_label("ctl", x=0.5965, y=0.019, size=10) +
-  draw_line(x = c(0.676, 0.729), y = 0.035, size = 0.43) +
-    draw_label("jGOS", x=0.7025, y=0.019, size=10) +
+  draw_line(x = c(0.573, 0.626), y = 0.035, size = 0.43) +
+    draw_label("ctl", x=0.5995, y=0.019, size=10) +
+  draw_line(x = c(0.677, 0.73), y = 0.035, size = 0.43) +
+    draw_label("jGOS", x=0.7035, y=0.019, size=10) +
   
-  draw_line(x = c(0.804, 0.857), y = 0.035, size = 0.43) +
-    draw_label("ctl", x=0.8305, y=0.019, size=10) +
+  draw_line(x = c(0.802, 0.855), y = 0.035, size = 0.43) +
+    draw_label("ctl", x=0.8285, y=0.019, size=10) +
   draw_line(x = c(0.905, 0.958), y = 0.035, size = 0.43) +
     draw_label("jGOS", x=0.9315, y=0.019, size=10) +
   
-  # panel B groups
-  draw_line(x = c(0.117, 0.17), y = 0.363, size = 0.43) +
-    draw_label("ctl", x=0.1435, y=0.347, size=10) +
-  draw_line(x = c(0.218, 0.271), y = 0.363, size = 0.43) +
-    draw_label("jGOS", x=0.2445, y=0.347, size=10) +
-  
-  draw_line(x = c(0.346, 0.399), y = 0.363, size = 0.43) +
-    draw_label("ctl", x=0.3725, y=0.347, size=10) +
-  draw_line(x = c(0.448, 0.501), y = 0.363, size = 0.43) +
-    draw_label("jGOS", x=0.4757, y=0.347, size=10) +
-  
-  draw_line(x = c(0.57, 0.628), y = 0.363, size = 0.43) +
-    draw_label("ctl", x=0.5965, y=0.347, size=10) +
-  draw_line(x = c(0.676, 0.729), y = 0.363, size = 0.43) +
-    draw_label("jGOS", x=0.7025, y=0.347, size=10) +
-  
-  draw_line(x = c(0.804, 0.857), y = 0.363, size = 0.43) +
-    draw_label("ctl", x=0.8305, y=0.347, size=10) +
-  draw_line(x = c(0.905, 0.958), y = 0.363, size = 0.43) +
-    draw_label("jGOS", x=0.9315, y=0.347, size=10) +
-  
   # panel A groups
-  draw_line(x = c(0.117, 0.17), y = 0.7, size = 0.43) +
-    draw_label("ctl", x=0.1435, y=0.684, size=10) +
-  draw_line(x = c(0.218, 0.271), y = 0.7, size = 0.43) +
-    draw_label("jGOS", x=0.2445, y=0.684, size=10) +
+  draw_line(x = c(0.116, 0.17), y = 0.535, size = 0.43) +
+    draw_label("ctl", x=0.143, y=0.519, size=10) +
+  draw_line(x = c(0.22, 0.273), y = 0.535, size = 0.43) +
+    draw_label("jGOS", x=0.2465, y=0.519, size=10) +
   
-  draw_line(x = c(0.346, 0.399), y = 0.7, size = 0.43) +
-    draw_label("ctl", x=0.3725, y=0.684, size=10) +
-  draw_line(x = c(0.448, 0.501), y = 0.7, size = 0.43) +
-    draw_label("jGOS", x=0.4757, y=0.684, size=10) +
+  draw_line(x = c(0.346, 0.398), y = 0.535, size = 0.43) +
+    draw_label("ctl", x=0.372, y=0.519, size=10) +
+  draw_line(x = c(0.448, 0.501), y = 0.535, size = 0.43) +
+    draw_label("jGOS", x=0.4757, y=0.519, size=10) +
   
-  draw_line(x = c(0.57, 0.628), y = 0.7, size = 0.43) +
-    draw_label("ctl", x=0.5965, y=0.684, size=10) +
-  draw_line(x = c(0.676, 0.729), y = 0.7, size = 0.43) +
-    draw_label("jGOS", x=0.7025, y=0.684, size=10) +
+  draw_line(x = c(0.573, 0.626), y = 0.535, size = 0.43) +
+    draw_label("ctl", x=0.5995, y=0.519, size=10) +
+  draw_line(x = c(0.677, 0.73), y = 0.535, size = 0.43) +
+    draw_label("jGOS", x=0.7035, y=0.519, size=10) +
   
-  draw_line(x = c(0.804, 0.857), y = 0.7, size = 0.43) +
-    draw_label("ctl", x=0.8305, y=0.684, size=10) +
-  draw_line(x = c(0.905, 0.958), y = 0.7, size = 0.43) +
-    draw_label("jGOS", x=0.9315, y=0.684, size=10) +
-
+  draw_line(x = c(0.802, 0.855), y = 0.535, size = 0.43) +
+    draw_label("ctl", x=0.8285, y=0.519, size=10) +
+  draw_line(x = c(0.905, 0.958), y = 0.535, size = 0.43) +
+    draw_label("jGOS", x=0.9315, y=0.519, size=10) +
+  
   # panel B stats
-  draw_line(x = c(0.346, 0.501), y = 0.58, size = 0.43) +
-    draw_label(label = round(weight_SE_GOSvMock_ctl_24,3), x=0.4235, y=0.595, size=9) +
+  draw_line(x = c(0.346, 0.501), y = 0.35, size = 0.43) +
+    draw_label(label = round(weight_SE_GOSvMock_ctl_24,3), x=0.4235, y=0.365, size=9) +
 
   # panel A stats
-  draw_line(x = c(0.628, 0.729), y = 0.925, size = 0.43) +
-    draw_label(label = round(SE_counts_stats_28,3), x=0.6785, y=0.94, size=9) +
+  draw_line(x = c(0.626, 0.73), y = 0.9, size = 0.43) +
+    draw_label(label = round(SE_counts_stats_28,3), x=0.678, y=0.915, size=9) +
   
-  draw_line(x = c(0.857, 0.958), y = 0.8545, size = 0.43) +
-    draw_label(label = round(SE_counts_stats_35,3), x=0.9075, y=0.8695, size=9)
+  draw_line(x = c(0.855, 0.958), y = 0.75, size = 0.43) +
+    draw_label(label = round(SE_counts_stats_35,3), x=0.9065, y=0.765, size=9)
   
   
 # print figure
-pdf(file = figpath, paper = "a4")
+pdf(file = figpath, paper = "a4", height = 6)
 zootech_annotate.p 
 dev.off()
 
