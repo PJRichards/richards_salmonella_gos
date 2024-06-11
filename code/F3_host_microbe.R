@@ -12,12 +12,13 @@ library("cowplot")
 library("FSA")
 library("readxl")
 library("dplyr")
-library("tidyr")
 library("ggplot2")
 library("stringr")
 library("purrr")
 library("ggrepel")
 library("forcats")
+library("tidyr")
+library("broom")
 
 set.seed(1216)
 
@@ -25,17 +26,21 @@ set.seed(1216)
 # and paths
 text_size <- 6
 header_size <- 8
+line_size <- 0.35
 
 GE_path <- "resources/zootechnical/SE_challenge_host_gene_expression.xlsx"
 GE_sheet <- "T42 Cecal tonsil"
 
 pcoa_path <- "results/mothur/sal.trim.contigs.sort.good.unique.good.filter.unique.precluster.denovo.vsearch.pick.pick.opti_mcc.0.03.pick.braycurtis.0.03.lt.ave.pcoa.axes"
 pcoa_loadings_path <- "results/mothur/sal.trim.contigs.sort.good.unique.good.filter.unique.precluster.denovo.vsearch.pick.pick.opti_mcc.0.03.pick.braycurtis.0.03.lt.ave.pcoa.loadings"
+
 alpha_path <- "results/mothur/sal.trim.contigs.sort.good.unique.good.filter.unique.precluster.denovo.vsearch.pick.pick.opti_mcc.0.03.pick.groups.ave-std.summary"
 
 aldex2_path <- "results/aldex2_glmtest.tsv"
 ancombc_diet_path <- "results/ANCOMBC_diet.tsv"
 ancombc_chal_path <- "results/ANCOMBC_challenge.tsv"
+
+vilus_raw_path <- "resources/zootechnical/late_vilus_length.csv"
 
 # output
 figpath <- "submission/fig3_hostmicrobe.pdf"
@@ -121,7 +126,7 @@ alpha <- alpha_raw %>%
 
 
 # are data normally distributed?
-print("# are data normally distributed?")
+print("# are inv simpson data normally distributed?")
 alpha %>% 
           select(Feed, Challenge, Age, invsimpson) %>% 
           group_by(Feed, Challenge, Age) %>% 
@@ -129,8 +134,16 @@ alpha %>%
 
 
 # get stats
+simpson_kw <- alpha %>% 
+                    group_nest(Age) %>% 
+                    mutate(kruskal_raw = map(data, ~ kruskal.test(.x$invsimpson, .x$Cohort)),
+                           kruskal = map(kruskal_raw, broom::tidy)) %>% 
+                    unnest(kruskal)
+
+
 dunn <- alpha %>% 
                 group_nest(Age) %>% 
+                filter(Age == "35 (15)") %>% 
                 mutate(dunntest = map(data, ~.x %>% dunnTest(invsimpson ~ Cohort, 
                                                              data=., method="bh")))
 
@@ -164,35 +177,35 @@ invsimp.p <- alpha %>%
 
 # print plot
 invsimp_annotate.p <- ggdraw(invsimp.p) +
-  draw_line(x = c(0.112, 0.165), y = 0.12, color = "black", size = 0.35) +
-    draw_label("ctl", x = 0.1385, y = 0.08, size = 7) +
-  draw_line(x = c(0.214, 0.267), y = 0.12, color = "black", size = 0.35) +
-    draw_label("jGOS", x = 0.2405, y = 0.08, size = 7) +
+  draw_line(x = c(0.112, 0.165), y = 0.12, color = "black", size = line_size) +
+    draw_label("ctl", x = 0.1385, y = 0.08, size = header_size) +
+  draw_line(x = c(0.214, 0.267), y = 0.12, color = "black", size = line_size) +
+    draw_label("jGOS", x = 0.2405, y = 0.08, size = header_size) +
   
-  draw_line(x = c(0.337, 0.39), y = 0.12, color = "black", size = 0.35) +
-    draw_label("ctl", x = 0.3635, y = 0.08, size = 7) +
-  draw_line(x = c(0.439, 0.492), y = 0.12, color = "black", size = 0.35) +
-    draw_label("jGOS", x = 0.4655, y = 0.08, size = 7) +
+  draw_line(x = c(0.337, 0.39), y = 0.12, color = "black", size = line_size) +
+    draw_label("ctl", x = 0.3635, y = 0.08, size = header_size) +
+  draw_line(x = c(0.439, 0.492), y = 0.12, color = "black", size = line_size) +
+    draw_label("jGOS", x = 0.4655, y = 0.08, size = header_size) +
   
-  draw_line(x = c(0.562, 0.615), y = 0.12, color = "black", size = 0.35) +
-    draw_label("ctl", x = 0.5885, y = 0.08, size = 7) +
-  draw_line(x = c(0.664, 0.717), y = 0.12, color = "black", size = 0.35) +
-  draw_label("jGOS", x = 0.6905, y = 0.08, size = 7) +
+  draw_line(x = c(0.562, 0.615), y = 0.12, color = "black", size = line_size) +
+    draw_label("ctl", x = 0.5885, y = 0.08, size = header_size) +
+  draw_line(x = c(0.664, 0.717), y = 0.12, color = "black", size = line_size) +
+  draw_label("jGOS", x = 0.6905, y = 0.08, size = header_size) +
   
-  draw_line(x = c(0.787, 0.84), y = 0.12, color = "black", size = 0.35) +
-    draw_label("ctl", x = 0.8135, y = 0.08, size = 7) +
-  draw_line(x = c(0.889, 0.942), y = 0.12, color = "black", size = 0.35) +
-    draw_label("jGOS", x = 0.9155, y = 0.08, size = 7) +
+  draw_line(x = c(0.787, 0.84), y = 0.12, color = "black", size = line_size) +
+    draw_label("ctl", x = 0.8135, y = 0.08, size = header_size) +
+  draw_line(x = c(0.889, 0.942), y = 0.12, color = "black", size = line_size) +
+    draw_label("jGOS", x = 0.9155, y = 0.08, size = header_size) +
   
   # ctl sal - gos sal
-  draw_line(x = c(0.84, 0.942), y = 0.745, color = "black", size = 0.35) +
-    draw_label(round(dunn[[4,3]][[1]]$res[2,4],3), x = 0.891, y = 0.78, size = text_size) +
+  draw_line(x = c(0.84, 0.942), y = 0.745, color = "black", size = line_size) +
+    draw_label(round(dunn[[1,3]][[1]]$res[2,4],3), x = 0.891, y = 0.78, size = text_size) +
   # gos sal - gos unc
-  draw_line(x = c(0.889, 0.942), y = 0.595, color = "black", size = 0.35) +
-  draw_label(round(dunn[[4,3]][[1]]$res[6,4],3), x = 0.9155, y = 0.63, size = text_size) +
+  draw_line(x = c(0.889, 0.942), y = 0.595, color = "black", size = line_size) +
+  draw_label(round(dunn[[1,3]][[1]]$res[6,4],3), x = 0.9155, y = 0.63, size = text_size) +
   # ctl unc - gos sal
-  draw_line(x = c(0.787, 0.942), y = 0.67, color = "black", size = 0.35) +
-  draw_label(round(dunn[[4,3]][[1]]$res[3,4],3), x = 0.8645, y = 0.705, size = text_size)
+  draw_line(x = c(0.787, 0.942), y = 0.67, color = "black", size = line_size) +
+  draw_label(round(dunn[[1,3]][[1]]$res[3,4],3), x = 0.8645, y = 0.705, size = text_size)
 
 
 ############ GE ################################################
@@ -481,19 +494,98 @@ DAA.p <- plot_grid(challenge.p + theme(legend.position = "none",
                    nrow = 1, labels = c('C','D'), 
                    rel_widths = c(0.3,0.3,0.3))
 
+############ Villus height #####################################################
 
+# read in histo data
+villus_len_raw <- read_csv(vilus_raw_path) 
+
+# format histo data
+villus_len <- villus_len_raw %>% 
+  group_by(pen, Diet, Challenge, Age, Cohort) %>%
+  summarise("VL" = mean(VL),
+            n = n()) %>% 
+  ungroup()
+
+# count villus n   
+print("villus n")
+villus_len %>% 
+  group_by(Age, Diet, Challenge) %>% 
+  summarise(n = n()) 
+
+# add dpi
+# fix feed names
+villus_len_fmt <- villus_len %>% 
+  mutate(Age = paste0(Age," (",Age-20,")"),
+         feed = if_else(Diet == "ctl", "ctl",
+                        if_else(Diet == "GOS" & Age < 28,"+GOS","ctl")))
+
+# get mass stats              
+villus_TukeyHSD <- 
+  villus_len_fmt %>% 
+  group_by(Age) %>% 
+  nest() %>%  
+  mutate(Tukey = map(data, ~ TukeyHSD(aov(VL ~ Challenge * Diet, data=.x)) %>% 
+                       tidy())) %>% 
+  select(-data) %>% 
+  unnest(cols = Tukey) %>% 
+  filter(term == "Challenge:Diet")
+
+# plot vilus height
+villus_len.p <- 
+  villus_len_fmt  %>% 
+  ggplot(aes(x = Cohort, y = VL, fill = feed)) + 
+  geom_boxplot(outlier.shape = NA) +
+  geom_point(aes(shape = Challenge), position = position_jitterdodge(0.2)) +
+  facet_grid(cols = vars(Age)) +
+  scale_fill_manual(values = c("#f5e4ae","#ffffff")) +
+  scale_x_discrete(name = "", labels = c("Mock","SE","Mock","SE")) +
+  scale_y_continuous(limits = c(round(min(villus_len_fmt$VL),-2),
+                                round(max(villus_len_fmt$VL),-2))) +
+  theme_bw() +
+  theme(plot.margin = margin(t = 0, r = 0.5, b = 0.3, l = 0.4, "cm"),
+        legend.position="none",
+        panel.grid.minor = element_blank(), 
+        panel.grid.major = element_blank(),
+        axis.text = element_text(colour = "black", size = text_size),
+        axis.title = element_text(colour = "black", size = header_size)) +
+  ylab(label = "Villus height (\u00b5m)")
+
+
+villus_len_annotate.p <- 
+            ggdraw(villus_len.p) +
+                    draw_line(x = c(0.103, 0.155), y = 0.14, size = line_size) +
+                      draw_label("ctl", x=0.129, y= 0.1, size=header_size) +
+                    draw_line(x = c(0.206, 0.259), y = 0.14, size = line_size) +
+                      draw_label("jGOS", x=0.2325, y=0.1, size=header_size) +
+          
+                    draw_line(x = c(0.33, 0.383), y = 0.14, size = line_size) +
+                      draw_label("ctl", x=0.3565, y=0.1, size=header_size) +
+                    draw_line(x = c(0.434, 0.487), y = 0.14, size = line_size) +
+                      draw_label("jGOS", x=0.4605, y=0.1, size=header_size) +
+  
+                    draw_line(x = c(0.558, 0.611), y = 0.14, size = line_size) +
+                      draw_label("ctl", x=0.5845, y=0.1, size=header_size) +
+                    draw_line(x = c(0.662, 0.715), y = 0.14, size = line_size) +
+                      draw_label("jGOS", x=0.6885, y=0.1, size=header_size) +
+  
+                    draw_line(x = c(0.786, 0.839), y = 0.14, size = line_size) +
+                      draw_label("ctl", x=0.8125, y=0.1, size=header_size) +
+                    draw_line(x = c(0.889, 0.942), y = 0.14, size = line_size) +
+                      draw_label("jGOS", x=0.9155, y=0.1, size=header_size) 
+  
 ############ plot ################################################
 p <- plot_grid(invsimp_annotate.p,
                pcoa.p,
                DAA.p,  
                GE_SE.annot.p, 
+               villus_len_annotate.p,
                ncol = 1, 
-               labels = c("A","B", "","E"),
+               labels = c("A","B", "","E", "F"),
                rel_heights = c(0.8, 0.85,0.85,1.4))
 
 
 # export plots to pdf
-pdf(file = figpath, paper = "a4", height = 8)
+pdf(file = figpath, paper = "a4", height = 10)
 p
 dev.off()
 
